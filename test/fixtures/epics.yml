@@ -1,0 +1,18 @@
+priority_one:
+  jira_key: "PG-1"
+  name: "First Priority"
+  priority: 1
+  jira_status: "In Progress"
+
+priority_two:
+  jira_key: "PG-2"
+  name: "Second Priority"
+  priority: 2
+  jira_status: "In Progress"
+
+removed_one:
+  jira_key: "PG-9"
+  name: "Removed"
+  priority: 99
+  jira_status: "Done"
+  removed_at: <%= Time.current.iso8601 %>

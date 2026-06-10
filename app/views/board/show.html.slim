@@ -1,0 +1,91 @@
+= turbo_stream_from "board"
+
+- all_issues   = @presenter.columns.flat_map(&:all_issues)
+- total_tickets = all_issues.size
+- total_stale  = all_issues.count { |p| %i[somewhat really].include?(p.staleness) }
+- configured_usernames = KORKBAN_CONFIG.board.users.map { |u| u.jira_username.to_s }
+- active_assignees     = all_issues.map(&:assignee).map(&:to_s)
+- assignees = (configured_usernames + active_assignees).reject(&:empty?).uniq.sort
+
+.kb-shell data-controller="board" data-board-statuses-value="[]" data-board-assignees-value="[]" data-board-query-value="" data-board-activity-value="{}"
+
+  header.kb-header
+    .kb-brand
+      = image_tag "/icon.png", alt: "", class: "kb-brand-logo"
+      span.kb-brand-name KorkBan
+
+    .kb-status-pills role="group" aria-label="Filter by status"
+      - @presenter.configured_display_statuses.each do |id|
+        - s = state_meta(id)
+        button.kb-pill type="button" data-board-target="statusPill" data-action="board#toggleStatus" data-state=s[:id] data-color=s[:color] data-on="0" style="--kb-state-color:#{s[:color]};" title="Highlight #{s[:label]}"
+          span.kb-pill-dot style="background:#{s[:color]};"
+          span= s[:short]
+      button.kb-pill-clear type="button" data-board-target="statusClear" data-action="board#clearStatuses" hidden=true
+        | ✕ clear
+
+    .kb-activity-pills role="group" aria-label="Highlight by activity"
+      - @activity_days.each do |days|
+        button.kb-act-pill type="button" data-board-target="activityPill" data-action="board#toggleActivity" data-dir="newer" data-days=days data-on="0" title="Highlight tickets updated within #{pluralize(days, "day")}"
+          | ≤#{days}d
+      span.kb-activity-sep aria-hidden="true"
+      - @activity_days.each do |days|
+        button.kb-act-pill type="button" data-board-target="activityPill" data-action="board#toggleActivity" data-dir="older" data-days=days data-on="0" title="Highlight tickets not updated in over #{pluralize(days, "day")}"
+          | ≥#{days}d
+
+    .kb-header-right
+      span.kb-counts
+        | #{total_tickets} tickets ·
+        span.stale= "#{total_stale} stale"
+
+      .kb-search-wrap
+        svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#94a3b8" stroke-width="1.6" aria-hidden="true"
+          circle cx="6" cy="6" r="4.2"
+          path d="M9.2 9.2L13 13" stroke-linecap="round"
+        input.kb-search type="search" placeholder="Search tickets…" data-board-target="search" data-action="input->board#search" autocomplete="off"
+
+      .kb-people data-controller="people" data-action="click@window->people#closeIfOutside"
+        button.kb-people-btn type="button" data-people-target="btn" data-action="people#toggle" data-on="0"
+          svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#64748b" stroke-width="1.5" aria-hidden="true"
+            circle cx="7" cy="4.5" r="2.3"
+            path d="M2.5 12c0-2.5 2-4 4.5-4s4.5 1.5 4.5 4" stroke-linecap="round"
+          span data-people-target="label"
+            | People
+          svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="#94a3b8" stroke-width="1.6" aria-hidden="true"
+            path d="M2 3.5L4.5 6 7 3.5" stroke-linecap="round"
+        .kb-people-menu data-people-target="menu" hidden=true
+          - un = avatar_for("")
+          button.kb-people-row type="button" data-people-target="row" data-action="people#toggleRow" data-name="" data-on="0"
+            span.kb-avatar style="background:#{un[:color]};width:22px;height:22px;font-size:9.2px;"
+              = un[:initials]
+            span.name= un[:name]
+            svg.check width="14" height="14" viewBox="0 0 14 14" hidden=true aria-hidden="true"
+              path d="M3 7.3l2.5 2.5L11 4.2" stroke="#2563eb" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"
+          - assignees.each do |name|
+            - av = avatar_for(name)
+            button.kb-people-row type="button" data-people-target="row" data-action="people#toggleRow" data-name=name data-on="0"
+              span.kb-avatar style="background:#{av[:color]};width:22px;height:22px;font-size:9.2px;"
+                = av[:initials]
+              span.name= av[:name]
+              svg.check width="14" height="14" viewBox="0 0 14 14" hidden=true aria-hidden="true"
+                path d="M3 7.3l2.5 2.5L11 4.2" stroke="#2563eb" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"
+          button.kb-people-clear type="button" data-people-target="clear" data-action="people#clear" hidden=true
+            | Clear selection
+
+      = render "board/stale_banner", last_sync: @last_sync
+      = render "board/warning_tray", warnings: @presenter.warnings
+
+      button.kb-theme-btn type="button" data-controller="theme" data-action="theme#toggle" title="Toggle dark / light theme" aria-label="Toggle theme"
+        svg.kb-theme-sun width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"
+          circle cx="7.5" cy="7.5" r="3"
+          path d="M7.5 1v1.6M7.5 12.4V14M1 7.5h1.6M12.4 7.5H14M2.9 2.9l1.1 1.1M11 11l1.1 1.1M2.9 12.1L4 11M11 4l1.1-1.1"
+        svg.kb-theme-moon width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          path d="M12.5 9.2A5.3 5.3 0 0 1 5.8 2.5a5.3 5.3 0 1 0 6.7 6.7z"
+
+      span.kb-user= current_user_email
+      = button_to "Logout", "/logout", method: :delete, form: { style: "display:inline;margin:0;" }, class: "kb-logout-btn"
+
+  main.kb-board#board-root data-board-target="root"
+    - @presenter.columns.each do |col|
+      = render "board/column", column: col
+
+  div data-board-target="tooltip" class="kb-tt" hidden=true

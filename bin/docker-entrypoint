@@ -1,0 +1,10 @@
+#!/bin/bash -e
+
+bundle check >/dev/null 2>&1 || bundle install
+
+# If running the rails server then create or migrate existing database
+if [[ " $* " == *" server "* ]]; then
+  ./bin/rails db:prepare
+fi
+
+exec "${@}"

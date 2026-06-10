@@ -1,0 +1,29 @@
+auth:
+  allowed_domains: ["example.com"]
+  allowed_emails: []
+
+polling:
+  tick_seconds: 60
+  active_window_minutes: 5
+  idle_interval_minutes: 60
+
+board:
+  epic_query: 'project = PG AND labels = "Priority" AND status != Done'
+  unplanned_query: 'project = PG AND labels = "Priority" AND issuetype != Epic AND parent is EMPTY AND (statusCategory != Done OR resolved >= -7d)'
+  users:
+    - { jira_username: "alice", display_name: "Alice" }
+    - { jira_username: "bob",   display_name: "Bob" }
+  status_map:
+    "Backlog":     "new"
+    "To Do":       "new"
+    "In Progress": "in_progress"
+    "In Review":   "review"
+    "In Doc":      "doc"
+    "Pending Release": "done"
+    "Done":        "done"
+  new_statuses:  ["new"]
+  done_statuses: ["done"]
+  staleness:
+    somewhat_days: 3
+    really_days:   10
+  ignore_staleness_for_new_issues: true

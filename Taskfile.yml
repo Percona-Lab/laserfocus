@@ -1,0 +1,55 @@
+version: "3"
+
+tasks:
+  dev:
+    desc: "Run dev server via docker compose"
+    cmds:
+      - docker compose up --build app
+
+  shell:
+    desc: "Open a bash shell in the dev container"
+    cmds:
+      - docker compose run --rm app bash
+
+  console:
+    desc: "Rails console"
+    cmds:
+      - docker compose run --rm app bin/rails console
+
+  migrate:
+    desc: "Run pending migrations"
+    cmds:
+      - docker compose run --rm app bin/rails db:migrate
+
+  lint:
+    desc: "Run RuboCop (matches CI lint job)"
+    cmds:
+      - docker compose run --rm app bin/rubocop
+
+  lint:fix:
+    desc: "Run RuboCop with safe autocorrect"
+    cmds:
+      - docker compose run --rm app bin/rubocop -A
+
+  test:
+    desc: "Run lint + all tests (unit + system) — matches CI"
+    cmds:
+      - task: lint
+      - docker compose run --rm app bin/rails test
+      - docker compose run --rm --use-aliases app bin/rails test:system
+
+  logs:
+    desc: "Tail app logs"
+    cmds:
+      - docker compose logs -f app
+
+  redeploy:
+    desc: "Rebuild and restart the prod stack (run on the Hetzner box after git pull)"
+    cmds:
+      - docker compose -f docker-compose.prod.yml up -d --build
+      - docker compose -f docker-compose.prod.yml exec app bin/rails db:migrate
+
+  prod-logs:
+    desc: "Tail prod app logs"
+    cmds:
+      - docker compose -f docker-compose.prod.yml logs -f app

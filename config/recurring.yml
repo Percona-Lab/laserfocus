@@ -1,0 +1,13 @@
+production:
+  jira_sync:
+    class: JiraSyncJob
+    queue: default
+    schedule: every 60 seconds
+
+development:
+  jira_sync:
+    class: JiraSyncJob
+    queue: default
+    schedule: every 60 seconds
+
+test: {}

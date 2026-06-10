@@ -1,0 +1,3 @@
+- if warnings.any?
+  span.kb-warn title=(warnings.map { |w| "#{w.issue_key}: #{w.status}" }.join("\n"))
+    | ⚠ #{warnings.size} warning#{warnings.size == 1 ? "" : "s"}

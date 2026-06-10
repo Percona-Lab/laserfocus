@@ -1,0 +1,44 @@
+fresh_in_progress:
+  jira_key: "PG-10"
+  epic: priority_one
+  issue_type: "Task"
+  summary: "Fresh task"
+  jira_status: "In Progress"
+  status_changed_at_jira: <%= 1.day.ago.iso8601 %>
+  created_at_jira: <%= 5.days.ago.iso8601 %>
+
+stale_in_review:
+  jira_key: "PG-11"
+  epic: priority_one
+  issue_type: "Task"
+  summary: "Stale review"
+  jira_status: "In Review"
+  status_changed_at_jira: <%= 30.days.ago.iso8601 %>
+  created_at_jira: <%= 60.days.ago.iso8601 %>
+
+new_one:
+  jira_key: "PG-12"
+  epic: priority_one
+  issue_type: "Task"
+  summary: "New thing"
+  jira_status: "To Do"
+  status_changed_at_jira:
+  created_at_jira: <%= 1.day.ago.iso8601 %>
+
+done_one:
+  jira_key: "PG-13"
+  epic: priority_one
+  issue_type: "Task"
+  summary: "Done thing"
+  jira_status: "Done"
+  status_changed_at_jira: <%= 3.days.ago.iso8601 %>
+  created_at_jira: <%= 14.days.ago.iso8601 %>
+
+unmapped_status:
+  jira_key: "PG-14"
+  epic: priority_two
+  issue_type: "Task"
+  summary: "Unmapped"
+  jira_status: "Banana"
+  status_changed_at_jira: <%= 2.days.ago.iso8601 %>
+  created_at_jira: <%= 5.days.ago.iso8601 %>

@@ -1,0 +1,15 @@
+- if last_sync.nil?
+  span.kb-sync title="No sync yet"
+    span.dot.dot-amber
+    | No sync yet
+- else
+  - age_min = ((Time.current - last_sync.finished_at) / 60).to_i
+  - level = age_min > 30 ? :red : age_min > 5 ? :amber : :green
+  span.kb-sync title="Last sync: #{last_sync.finished_at.iso8601} (#{age_min} min ago)"
+    span class="dot dot-#{level}"
+    - if level == :red
+      | JIRA sync stalled (#{age_min}m)
+    - elsif level == :amber
+      | #{age_min}m ago
+    - else
+      | synced

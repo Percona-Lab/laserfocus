@@ -1,0 +1,35 @@
+- state    = state_meta(p.display_status)
+- stale    = staleness_meta(p.staleness)
+- stale_lvl = staleness_label(p.staleness)
+- avatar   = avatar_for(p.assignee)
+- days     = days_in_state(p)
+- step_idx = state_step_index(p.display_status)
+- step_total = state_total_steps
+- age_show = p.staleness != :fresh
+- card_style = +"--kb-state-color:#{state[:color]};"
+- card_style << "--kb-card-border:#{stale[:border]};"
+- card_style << "--kb-paper:#{stale[:paper]};"
+- card_style << "--kb-avatar-ring:#{stale[:paper]};"
+- data_attrs = { assignee: p.assignee.to_s, display_status: p.display_status.to_s, staleness: p.staleness.to_s, days_since_change: days.to_s, search: [p.jira_key, p.summary, p.assignee, state[:label]].compact.join(" ").downcase, board_target: "card", action: "mouseenter->board#showTooltip mouseleave->board#hideTooltip", tooltip_id: p.jira_key, tooltip_title: p.summary, tooltip_type: p.issue_type.to_s, tooltip_state: state[:label], tooltip_state_color: state[:color], tooltip_assignee: avatar[:name], tooltip_days: days.to_s, tooltip_stale: stale_lvl, tooltip_priority: priority_label(p.priority), tooltip_status_raw: p.jira_status.to_s }
+- data_attrs[:critical] = "1" if stale_lvl == "critical"
+= link_to jira_url(p.jira_key), data: data_attrs, class: "kb-card", style: card_style, target: "_blank", rel: "noreferrer" do
+  .kb-card-row1
+    = type_icon_svg(p.issue_type, size: 14)
+    span.kb-card-id= p.jira_key
+    span.kb-card-meta
+      = priority_flag_svg(p.priority, size: 13)
+      - if age_show && days
+        span.kb-age style="background:#{stale[:bg]};color:#{stale[:fg]};"
+          span.dot style="background:#{stale[:dot]};"
+          | #{days}d
+  .kb-card-title= p.summary
+  .kb-card-row2
+    span.kb-card-avatar-wrap
+      span.kb-avatar style="background:#{avatar[:color]};width:20px;height:20px;font-size:8.4px;" title=avatar[:name]
+        = avatar[:initials]
+  .kb-ladder
+    - ordered_display_states.each_with_index do |s, i|
+      - if i <= step_idx
+        span style="background:#{s[:color]};"
+      - else
+        span
