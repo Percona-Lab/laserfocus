@@ -50,10 +50,31 @@ class ColumnReorderTest < ApplicationSystemTestCase
   end
 
   def drag_col(from_key, to_key, side:)
-    source = find(".kb-col[data-epic-key='#{from_key}'] .kb-col-head")
-    target = find(".kb-col[data-epic-key='#{to_key}'] .kb-col-head")
-    x_offset = side == :left ? -50 : 50
-    source.drag_to(target, drop_offset: { x: x_offset, y: 0 })
+    # Capybara 3.40's drag_to drops at the target's center, which doesn't
+    # satisfy the controller's strict `clientX < rect.left + width/2` check
+    # for "insert before". Dispatch HTML5 drag events directly so we can
+    # pick a clientX clearly inside the left or right half of the target column.
+    page.execute_script(<<~JS, from_key, to_key, side.to_s)
+      const [fromKey, toKey, side] = arguments;
+      const source = document.querySelector(`.kb-col[data-epic-key='${fromKey}'] .kb-col-head`);
+      const targetCol = document.querySelector(`.kb-col[data-epic-key='${toKey}']`);
+      const rect = targetCol.getBoundingClientRect();
+      const clientX = side === 'left' ? rect.left + 5 : rect.right - 5;
+      const clientY = rect.top + 5;
+      const dt = new DataTransfer();
+      const fire = (el, type, extra = {}) => {
+        const ev = new DragEvent(type, Object.assign(
+          { bubbles: true, cancelable: true, dataTransfer: dt, clientX, clientY },
+          extra
+        ));
+        el.dispatchEvent(ev);
+      };
+      fire(source, 'dragstart');
+      fire(targetCol, 'dragenter');
+      fire(targetCol, 'dragover');
+      fire(targetCol, 'drop');
+      fire(source, 'dragend');
+    JS
   end
 
   def broadcast_board

@@ -3,11 +3,11 @@
 # your test database is "scratch space" for the test suite and is wiped
 # and recreated between test runs. Don't rely on the data there!
 
-ENV["GOOGLE_CLIENT_ID"]     ||= "test-id"
-ENV["GOOGLE_CLIENT_SECRET"] ||= "test-secret"
-ENV["JIRA_BASE_URL"]        ||= "https://example.atlassian.net"
-ENV["JIRA_EMAIL"]           ||= "jira@example.com"
-ENV["JIRA_API_TOKEN"]       ||= "test-token"
+ENV["GOOGLE_CLIENT_ID"]     = "test-id"
+ENV["GOOGLE_CLIENT_SECRET"] = "test-secret"
+ENV["JIRA_BASE_URL"]        = "https://example.atlassian.net"
+ENV["JIRA_EMAIL"]           = "jira@example.com"
+ENV["JIRA_API_TOKEN"]       = "test-token"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
