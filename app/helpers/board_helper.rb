@@ -22,6 +22,8 @@ module BoardHelper
   TYPE_STYLE = {
     "story" => { color: "#16a34a", shape: :square },
     "task"  => { color: "#2563eb", shape: :square },
+    "sub-task" => { color: "#0d9488", shape: :square },
+    "subtask"  => { color: "#0d9488", shape: :square },
     "bug"   => { color: "#dc2626", shape: :circle },
     "spike" => { color: "#7c3aed", shape: :square },
     "epic"  => { color: "#a855f7", shape: :square }
@@ -128,6 +130,8 @@ module BoardHelper
               '<path d="M5 4.2h6v7.6l-3-2.2-3 2.2z" fill="#fff"/>'
     when "task"
               '<path d="M4.6 8.2l2 2 4-4.4" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    when "sub-task", "subtask"
+              '<path d="M4.4 5.2h3.2v3.2H4.4zM8.4 8.2h3.2v3.2H8.4z" fill="#fff"/>'
     when "bug"
               '<circle cx="8" cy="8" r="2.4" fill="#fff"/>'
     when "spike"

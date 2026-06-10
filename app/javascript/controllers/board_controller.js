@@ -207,6 +207,15 @@ export default class extends Controller {
     const staleClass = stale ? ds.tooltipStale : null
     const staleColor = ds.tooltipStale === "critical" ? "#fca5a5"
                     : ds.tooltipStale === "stale" ? "#fdba74" : "#e8ecf2"
+    const parentRow = ds.tooltipParent
+      ? `<span class="lbl">Parent</span><span class="val">${this._esc(ds.tooltipParent)}</span>`
+      : ""
+    const labelsRow = ds.tooltipLabels
+      ? `<span class="lbl">Labels</span><span class="val">${this._esc(ds.tooltipLabels)}</span>`
+      : ""
+    const componentsRow = ds.tooltipComponents
+      ? `<span class="lbl">Components</span><span class="val">${this._esc(ds.tooltipComponents)}</span>`
+      : ""
     this.tooltipTarget.innerHTML = `
       <div class="kb-tt-row">
         <span class="kb-tt-id">${ds.tooltipId || ""}</span>
@@ -215,6 +224,9 @@ export default class extends Controller {
       <div class="kb-tt-title">${this._esc(ds.tooltipTitle || "")}</div>
       <div class="kb-tt-grid">
         <span class="lbl">Type</span><span class="val">${this._esc(ds.tooltipType || "—")}</span>
+        ${parentRow}
+        ${labelsRow}
+        ${componentsRow}
         <span class="lbl">Assignee</span><span class="val">${this._esc(ds.tooltipAssignee || "Unassigned")}</span>
         <span class="lbl">In state</span><span class="val" style="color:${staleColor}">${ds.tooltipDays ? ds.tooltipDays + " days" : "—"}${stale ? " · " + staleClass : ""}</span>
         <span class="lbl">Priority</span><span class="val">${this._esc(ds.tooltipPriority || "Medium")}</span>

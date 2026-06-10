@@ -1,6 +1,6 @@
 class JiraSync
   EPIC_FIELDS  = %w[summary status priority].freeze
-  ISSUE_FIELDS = %w[summary status issuetype assignee priority created parent].freeze
+  ISSUE_FIELDS = %w[summary status issuetype assignee priority created parent labels components].freeze
 
   def initialize(epic_query: KORKBAN_CONFIG.board.epic_query,
                  unplanned_query: KORKBAN_CONFIG.board.unplanned_query,
@@ -23,14 +23,25 @@ class JiraSync
     end
 
     if epics_by_key.any?
-      keys_list = epics_by_key.keys.map { |k| %Q("#{k}") }.join(",")
+      keys_list = jira_key_list(epics_by_key.keys)
       child_jql = "parent in (#{keys_list})"
       children = @client.search_all(child_jql, fields: ISSUE_FIELDS, expand: "changelog")
+      subtasks = []
+
+      if children.any?
+        subtask_jql = "parent in (#{jira_key_list(children.map(&:key))})"
+        subtasks = @client.search_all(subtask_jql, fields: ISSUE_FIELDS, expand: "changelog")
+      end
 
       children_by_epic = Hash.new { |h, k| h[k] = [] }
       children.each do |ji|
         parent_key = ji.fields.dig("parent", "key")
         children_by_epic[parent_key] << ji
+      end
+      subtasks_by_parent = Hash.new { |h, k| h[k] = [] }
+      subtasks.each do |ji|
+        parent_key = ji.fields.dig("parent", "key")
+        subtasks_by_parent[parent_key] << ji
       end
 
       epics_by_key.each do |epic_key, epic|
@@ -39,10 +50,14 @@ class JiraSync
         epic_children.each do |ji|
           upsert_issue(ji, epic, now)
           seen_issue_keys << ji.key
+          subtasks_by_parent[ji.key].each do |subtask|
+            upsert_issue(subtask, epic, now)
+            seen_issue_keys << subtask.key
+          end
         end
         epic.issues.active.where.not(jira_key: seen_issue_keys).update_all(removed_at: now)
       end
-      fetched += children.size
+      fetched += children.size + subtasks.size
     end
 
     Epic.active.where.not(jira_key: epics_by_key.keys).update_all(removed_at: now)
@@ -107,6 +122,10 @@ class JiraSync
     )
     issue.save!
     issue
+  end
+
+  def jira_key_list(keys)
+    keys.map { |k| %Q("#{k}") }.join(",")
   end
 
   def last_status_change_at(ji)

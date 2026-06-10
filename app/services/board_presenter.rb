@@ -1,5 +1,8 @@
+require "set"
+
 class BoardPresenter
   Warning = Struct.new(:issue_key, :status, :reason)
+  IssueRow = Struct.new(:postit, :depth)
 
   IssuePresenter = Struct.new(:issue, :display_status, :staleness) do
     def jira_key        = issue.jira_key
@@ -8,6 +11,9 @@ class BoardPresenter
     def jira_status     = issue.jira_status
     def issue_type      = issue.issue_type
     def priority        = issue.priority
+    def parent_jira_key = issue.parent_jira_key
+    def labels          = issue.labels
+    def components      = issue.components
     def created_at_jira = issue.created_at_jira
     def status_changed_at_jira = issue.status_changed_at_jira
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira
@@ -16,6 +22,29 @@ class BoardPresenter
   Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues) do
     def all_issues
       new_issues + middle_groups.values.flatten + done_issues
+    end
+
+    def issue_rows_for(postits)
+      issue_keys = Set.new(postits.map(&:jira_key))
+      children_by_parent = Hash.new { |h, k| h[k] = [] }
+      child_keys = Set.new
+
+      postits.each do |postit|
+        parent_key = postit.parent_jira_key
+        next if parent_key.blank? || !issue_keys.include?(parent_key)
+
+        children_by_parent[parent_key] << postit
+        child_keys << postit.jira_key
+      end
+
+      postits.each_with_object([]) do |postit, rows|
+        next if child_keys.include?(postit.jira_key)
+
+        rows << IssueRow.new(postit, 0)
+        children_by_parent[postit.jira_key].each do |child|
+          rows << IssueRow.new(child, 1)
+        end
+      end
     end
   end
 

@@ -25,7 +25,9 @@ class JiraSyncTest < ActiveSupport::TestCase
                                                      "status" => { "name" => "To Do" },
                                                      "issuetype" => { "name" => "Task" },
                                                      "assignee" => { "name" => "alice" },
-                                                     "parent" => { "key" => "PG-1" } } }
+                                                     "parent" => { "key" => "PG-1" },
+                                                     "labels" => [ "backend", "priority" ],
+                                                     "components" => [ { "name" => "API" } ] } }
                  ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
       else
                { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
@@ -40,6 +42,47 @@ class JiraSyncTest < ActiveSupport::TestCase
     assert_equal "Epic A", Epic.first.name
     assert_equal 1, Issue.count
     assert_equal "PG-10", Issue.first.jira_key
+    assert_equal [ "backend", "priority" ], Issue.first.labels
+    assert_equal [ "API" ], Issue.first.components
+  end
+
+  test "fetches subtasks below epic children" do
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      body = case decoded
+      when /parent\s+in\s*\([^)]*PG-10[^)]*\)/i
+               { "issues" => [
+                   { "key" => "PG-11", "fields" => { "summary" => "Subtask A",
+                                                     "status" => { "name" => "In Progress" },
+                                                     "issuetype" => { "name" => "Sub-task" },
+                                                     "parent" => { "key" => "PG-10" } } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+      when /labels.*Priority/i
+               { "issues" => [
+                   { "key" => "PG-1", "fields" => { "summary" => "Epic A",
+                                                    "status" => { "name" => "In Progress" },
+                                                    "priority" => { "id" => "1" } } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+      when /parent\s+in\s*\([^)]*PG-1[^)]*\)/i
+               { "issues" => [
+                   { "key" => "PG-10", "fields" => { "summary" => "Story A",
+                                                     "status" => { "name" => "In Progress" },
+                                                     "issuetype" => { "name" => "Story" },
+                                                     "parent" => { "key" => "PG-1" } } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+      else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
+      end
+      { status: 200, body: body.to_json,
+        headers: { "Content-Type" => "application/json" } }
+    end
+
+    JiraSync.new(epic_query: 'project = PG AND labels = "Priority"').run!
+
+    story = Issue.find_by!(jira_key: "PG-10")
+    subtask = Issue.find_by!(jira_key: "PG-11")
+    assert_equal story.epic_id, subtask.epic_id
+    assert_equal "PG-10", subtask.parent_jira_key
   end
 
   test "uses last status change from changelog for status_changed_at_jira" do
