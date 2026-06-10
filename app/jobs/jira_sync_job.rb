@@ -1,6 +1,8 @@
 class JiraSyncJob < ApplicationJob
   queue_as :default
 
+  limits_concurrency key: "jira_sync", to: 1, duration: 15.minutes, on_conflict: :discard
+
   def perform
     user = User.singleton
     active_window = KORKBAN_CONFIG.polling.active_window_minutes.minutes
