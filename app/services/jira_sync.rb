@@ -1,5 +1,5 @@
 class JiraSync
-  EPIC_FIELDS  = %w[summary status priority].freeze
+  EPIC_FIELDS  = %w[summary status priority assignee].freeze
   ISSUE_FIELDS = %w[summary status issuetype assignee priority created parent labels components].freeze
 
   def initialize(epic_query: KORKBAN_CONFIG.board.epic_query,

@@ -27,6 +27,9 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
     .kb-col-meta
       - unless epic.jira_key == "UNPLANNED"
         span.kb-col-key= epic.jira_key
+        - epic_avatar = avatar_for(epic.assignee_name)
+        span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;" title=epic_avatar[:name]
+          = epic_avatar[:initials]
       - if stale_count > 0
         span.kb-col-stale
           | ⚠ #{stale_count} stale
