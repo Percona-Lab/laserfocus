@@ -13,8 +13,12 @@ section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-to
   .kb-col-head draggable="true"
     .kb-col-accent style="background:#{accent};"
     .kb-col-title-row
-      span.kb-col-name title=epic.name
-        = epic.name
+      - if epic.jira_key == "UNPLANNED"
+        span.kb-col-name title=epic.name
+          = epic.name
+      - else
+        a.kb-col-name href=jira_url(epic.jira_key) target="_blank" rel="noreferrer" title=epic.name draggable="false"
+          = epic.name
       span.kb-col-count= total
     .kb-col-meta
       span.kb-col-key= epic.jira_key
