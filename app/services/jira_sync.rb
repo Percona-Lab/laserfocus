@@ -22,6 +22,7 @@ class JiraSync
       epics_by_key[epic.jira_key] = epic
     end
 
+    all_assigned_keys = Set.new
     if epics_by_key.any?
       keys_list = jira_key_list(epics_by_key.keys)
       child_jql = "parent in (#{keys_list})"
@@ -55,6 +56,7 @@ class JiraSync
             seen_issue_keys << subtask.key
           end
         end
+        all_assigned_keys.merge(seen_issue_keys)
         epic.issues.active.where.not(jira_key: seen_issue_keys).update_all(removed_at: now)
       end
       fetched += children.size + subtasks.size
@@ -64,8 +66,7 @@ class JiraSync
 
     if @unplanned_query.present?
       orphans = @client.search_all(@unplanned_query, fields: ISSUE_FIELDS, expand: "changelog")
-      tracked_epic_keys = epics_by_key.keys.to_set
-      orphans = orphans.reject { |ji| tracked_epic_keys.include?(ji.fields.dig("parent", "key")) }
+      orphans = orphans.reject { |ji| all_assigned_keys.include?(ji.key) }
       seen_orphan_keys = []
       orphans.each do |ji|
         if (clashing_epic = epics_by_key.delete(ji.key))
