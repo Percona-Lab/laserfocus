@@ -162,7 +162,8 @@ html, body { background: var(--kb-bg); font-family: var(--kb-ui); color: var(--k
   font: 600 11.5px var(--kb-ui); color: var(--kb-text-soft);
 }
 
-.kb-sync { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px var(--kb-ui); color: var(--kb-text-mute); }
+.kb-sync { display: inline-flex; align-items: center; gap: 6px; font: 600 11.5px var(--kb-ui); color: var(--kb-text-mute); text-decoration: none; background: none; border: none; padding: 0; cursor: pointer; }
+.kb-sync:hover { opacity: 0.7; }
 .kb-sync .dot { width: 7px; height: 7px; border-radius: 50%; }
 .kb-sync .dot-green { background: #22c55e; }
 .kb-sync .dot-amber { background: #eab308; }

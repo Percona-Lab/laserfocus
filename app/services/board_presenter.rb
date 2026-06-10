@@ -48,7 +48,7 @@ class BoardPresenter
     end
   end
 
-  UNPLANNED_EPIC = Struct.new(:jira_key, :name).new("UNPLANNED", "Unplanned")
+  UNPLANNED_EPIC = Struct.new(:jira_key, :name).new("UNPLANNED", "Unplanned Work")
 
   def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:, orphan_issues: [])
     @epics = epics

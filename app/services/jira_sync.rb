@@ -80,6 +80,12 @@ class JiraSync
       partial: "board/board_morph",
       locals: { presenter: build_presenter, last_sync: run }
     )
+    Turbo::StreamsChannel.broadcast_replace_to(
+      "sync_status",
+      target: "kb-sync-status",
+      partial: "board/stale_banner",
+      locals: { last_sync: run }
+    )
     run
   rescue => e
     run.update!(finished_at: Time.current, ok: false, error_message: e.message)

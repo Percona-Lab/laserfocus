@@ -25,7 +25,8 @@ section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-to
           = epic.name
       span.kb-col-count= total
     .kb-col-meta
-      span.kb-col-key= epic.jira_key
+      - unless epic.jira_key == "UNPLANNED"
+        span.kb-col-key= epic.jira_key
       - if stale_count > 0
         span.kb-col-stale
           | ⚠ #{stale_count} stale
