@@ -37,6 +37,48 @@ class BoardPresenterTest < ActiveSupport::TestCase
     assert_equal [ "PG-11" ], epic1.middle_groups["review"].map(&:jira_key)
   end
 
+  test "issue rows nest same-state subtasks and keep other statuses separate" do
+    epic = epics(:priority_one)
+    story = Issue.create!(
+      jira_key: "PG-20",
+      epic: epic,
+      issue_type: "Story",
+      summary: "Parent story",
+      jira_status: "In Progress",
+      status_changed_at_jira: 2.hours.ago,
+      created_at_jira: 3.hours.ago,
+      raw_fields: { "parent" => { "key" => epic.jira_key } }
+    )
+    Issue.create!(
+      jira_key: "PG-21",
+      epic: epic,
+      issue_type: "Sub-task",
+      summary: "Done subtask",
+      jira_status: "Done",
+      status_changed_at_jira: 1.hour.ago,
+      created_at_jira: 2.hours.ago,
+      raw_fields: { "parent" => { "key" => story.jira_key } }
+    )
+    Issue.create!(
+      jira_key: "PG-22",
+      epic: epic,
+      issue_type: "Sub-task",
+      summary: "Nested subtask",
+      jira_status: "In Progress",
+      status_changed_at_jira: 30.minutes.ago,
+      created_at_jira: 1.hour.ago,
+      raw_fields: { "parent" => { "key" => story.jira_key } }
+    )
+
+    column = build_presenter.columns.detect { |col| col.epic.jira_key == epic.jira_key }
+    rows = column.issue_rows_for(column.middle_groups["in_progress"])
+    story_index = rows.index { |row| row.postit.jira_key == "PG-20" }
+
+    assert_equal "PG-22", rows[story_index + 1].postit.jira_key
+    assert_equal 1, rows[story_index + 1].depth
+    assert_equal 0, column.issue_rows_for(column.done_issues).detect { |row| row.postit.jira_key == "PG-21" }.depth
+  end
+
   test "warnings include unmapped statuses" do
     warnings = build_presenter.warnings
     assert_includes warnings.map(&:issue_key), "PG-14"

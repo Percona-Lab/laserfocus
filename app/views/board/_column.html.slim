@@ -1,23 +1,32 @@
 - epic = column.epic
 - all_issues  = column.all_issues
+- todo_rows = column.issue_rows_for(column.new_issues)
+- middle_rows = column.middle_groups.transform_values { |postits| column.issue_rows_for(postits) }
+- done_rows = column.issue_rows_for(column.done_issues)
 - total       = all_issues.size
-- todo_count  = column.new_issues.size
-- done_count  = column.done_issues.size
-- middle_count = column.middle_groups.values.sum(&:size)
+- todo_count  = todo_rows.size
+- done_count  = done_rows.size
+- middle_count = middle_rows.values.sum(&:size)
+- visible_middle_group_count = middle_rows.values.count(&:any?)
 - stale_count = column.middle_groups.values.flatten.count { |p| %i[somewhat really].include?(p.staleness) }
 - accent_palette = %w[#6366f1 #e11d48 #d97706 #0ea5e9 #8b5cf6 #0d9488 #10b981 #ea580c #c026d3 #64748b]
 - accent = accent_palette[(epic.jira_key.to_s.bytes.sum % accent_palette.size)]
 - dist_buckets = ordered_display_states.map { |s| n = all_issues.count { |p| p.display_status == s[:id] }; [s, n] }.select { |_, n| n > 0 }
 
 section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-todo-open-value="false" data-stack-done-open-value="false"
-  .kb-col-head
+  .kb-col-head draggable="true"
     .kb-col-accent style="background:#{accent};"
     .kb-col-title-row
-      span.kb-col-name title=epic.name
-        = epic.name
+      - if epic.jira_key == "UNPLANNED"
+        span.kb-col-name title=epic.name
+          = epic.name
+      - else
+        a.kb-col-name href=jira_url(epic.jira_key) target="_blank" rel="noreferrer" title=epic.name draggable="false"
+          = epic.name
       span.kb-col-count= total
     .kb-col-meta
-      span.kb-col-key= epic.jira_key
+      - unless epic.jira_key == "UNPLANNED"
+        span.kb-col-key= epic.jira_key
       - if stale_count > 0
         span.kb-col-stale
           | ⚠ #{stale_count} stale
@@ -39,8 +48,8 @@ section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-to
           span.kb-stack-trail data-stack-target="todoTrail"
             | show
         .kb-stack-body data-stack-target="todoBody" hidden=true
-          - column.new_issues.each do |pp|
-            = render "board/postit", p: pp
+          - todo_rows.each do |row|
+            = render "board/postit", p: row.postit, nested: row.depth > 0
 
     - if middle_count > 0 && todo_count > 0
       .kb-divider data-stack-target="middleDivider" hidden=true
@@ -49,15 +58,16 @@ section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-to
         span.kb-divider-line
 
     - column.middle_groups.each do |display_status, postits|
-      - next if postits.empty?
+      - rows = middle_rows[display_status]
+      - next if rows.empty?
       - st = state_meta(display_status)
-      - if column.middle_groups.size > 1
+      - if visible_middle_group_count > 1
         .kb-divider
           span.kb-divider-text style="color:#{st[:deep]};"
             = st[:label].upcase
           span.kb-divider-line
-      - postits.each do |pp|
-        = render "board/postit", p: pp
+      - rows.each do |row|
+        = render "board/postit", p: row.postit, nested: row.depth > 0
 
     - if done_count > 0
       .kb-stack-wrap data-stack-target="doneWrap"
@@ -72,5 +82,5 @@ section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-to
           span.kb-stack-trail data-stack-target="doneTrail"
             | show
         .kb-stack-body data-stack-target="doneBody" hidden=true
-          - column.done_issues.each do |pp|
-            = render "board/postit", p: pp
+          - done_rows.each do |row|
+            = render "board/postit", p: row.postit, nested: row.depth > 0

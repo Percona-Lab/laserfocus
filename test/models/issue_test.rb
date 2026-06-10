@@ -16,4 +16,19 @@ class IssueTest < ActiveSupport::TestCase
     )
     assert_equal "foo", Issue.find(issue.id).raw_fields["labels"].first
   end
+
+  test "normalizes labels and component names from raw fields" do
+    issue = Issue.create!(
+      jira_key: "PG-11", epic: @epic,
+      issue_type: "Task", summary: "Do it too",
+      jira_status: "To Do",
+      raw_fields: {
+        "labels" => [ "backend", "", nil ],
+        "components" => [ { "name" => "API" }, { "name" => "" }, "Docs" ]
+      }
+    )
+
+    assert_equal [ "backend" ], issue.labels
+    assert_equal [ "API", "Docs" ], issue.components
+  end
 end

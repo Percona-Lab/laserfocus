@@ -1,8 +1,12 @@
+- nested = local_assigns.fetch(:nested, false)
 - state    = state_meta(p.display_status)
 - stale    = staleness_meta(p.staleness)
 - stale_lvl = staleness_label(p.staleness)
 - avatar   = avatar_for(p.assignee)
 - days     = days_in_state(p)
+- parent_key = p.parent_jira_key
+- labels = p.labels
+- components = p.components
 - step_idx = state_step_index(p.display_status)
 - step_total = state_total_steps
 - age_show = p.staleness != :fresh
@@ -10,9 +14,15 @@
 - card_style << "--kb-card-border:#{stale[:border]};"
 - card_style << "--kb-paper:#{stale[:paper]};"
 - card_style << "--kb-avatar-ring:#{stale[:paper]};"
-- data_attrs = { assignee: p.assignee.to_s, display_status: p.display_status.to_s, staleness: p.staleness.to_s, days_since_change: days.to_s, search: [p.jira_key, p.summary, p.assignee, state[:label]].compact.join(" ").downcase, board_target: "card", action: "mouseenter->board#showTooltip mouseleave->board#hideTooltip", tooltip_id: p.jira_key, tooltip_title: p.summary, tooltip_type: p.issue_type.to_s, tooltip_state: state[:label], tooltip_state_color: state[:color], tooltip_assignee: avatar[:name], tooltip_days: days.to_s, tooltip_stale: stale_lvl, tooltip_priority: priority_label(p.priority), tooltip_status_raw: p.jira_status.to_s }
+- data_attrs = { assignee: p.assignee.to_s, display_status: p.display_status.to_s, staleness: p.staleness.to_s, days_since_change: days.to_s, search: [p.jira_key, p.summary, p.assignee, state[:label], parent_key].compact.join(" ").downcase, board_target: "card", action: "mouseenter->board#showTooltip mouseleave->board#hideTooltip", tooltip_id: p.jira_key, tooltip_title: p.summary, tooltip_type: p.issue_type.to_s, tooltip_state: state[:label], tooltip_state_color: state[:color], tooltip_assignee: avatar[:name], tooltip_days: days.to_s, tooltip_stale: stale_lvl, tooltip_priority: priority_label(p.priority), tooltip_status_raw: p.jira_status.to_s }
+- data_attrs[:parent_issue] = parent_key if parent_key.present?
+- data_attrs[:tooltip_parent] = parent_key if parent_key.present?
+- data_attrs[:tooltip_labels] = labels.join(", ") if labels.any?
+- data_attrs[:tooltip_components] = components.join(", ") if components.any?
 - data_attrs[:critical] = "1" if stale_lvl == "critical"
-= link_to jira_url(p.jira_key), data: data_attrs, class: "kb-card", style: card_style, target: "_blank", rel: "noreferrer" do
+- card_classes = [ "kb-card" ]
+- card_classes << "kb-card-subtask" if nested
+= link_to jira_url(p.jira_key), data: data_attrs, class: card_classes.join(" "), style: card_style, target: "_blank", rel: "noreferrer" do
   .kb-card-row1
     = type_icon_svg(p.issue_type, size: 14)
     span.kb-card-id= p.jira_key
