@@ -16,17 +16,39 @@ export default class extends Controller {
   connect() {
     // expose self so the board controller can ask us to refresh hit counts
     this.element.stackController = this
+    // The board auto-refreshes via turbo-stream morph; the server re-renders
+    // the column with the default open=false attributes, which would otherwise
+    // collapse the user's expanded sections. Track intent here and restore
+    // after each morph of this section.
+    this._intendedTodoOpen = this.todoOpenValue
+    this._intendedDoneOpen = this.doneOpenValue
     this.applyTodo()
     this.applyDone()
+    this._onMorph = this._onMorph.bind(this)
+    this.element.addEventListener("turbo:morph-element", this._onMorph)
+  }
+
+  disconnect() {
+    this.element.removeEventListener("turbo:morph-element", this._onMorph)
   }
 
   toggleTodo() {
     this.todoOpenValue = !this.todoOpenValue
+    this._intendedTodoOpen = this.todoOpenValue
     this.applyTodo()
   }
 
   toggleDone() {
     this.doneOpenValue = !this.doneOpenValue
+    this._intendedDoneOpen = this.doneOpenValue
+    this.applyDone()
+  }
+
+  _onMorph(event) {
+    if (event.target !== this.element) return
+    this.todoOpenValue = this._intendedTodoOpen
+    this.doneOpenValue = this._intendedDoneOpen
+    this.applyTodo()
     this.applyDone()
   }
 
