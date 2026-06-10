@@ -211,6 +211,38 @@ class JiraSyncTest < ActiveSupport::TestCase
     assert_not_nil stale.reload.removed_at
   end
 
+  test "does not create orphan Issue when the same key is already an epic" do
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      body = case decoded
+      when /labels.*Priority/i
+               { "issues" => [
+                   { "key" => "PG-5", "fields" => { "summary" => "Priority issue without parent",
+                                                    "status" => { "name" => "In Progress" },
+                                                    "priority" => { "id" => "2" } } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 100 }
+      when /parent is EMPTY/i
+               { "issues" => [
+                   { "key" => "PG-5", "fields" => { "summary" => "Priority issue without parent",
+                                                    "status" => { "name" => "In Progress" },
+                                                    "issuetype" => { "name" => "Story" } } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 100 }
+      else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 100 }
+      end
+      { status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" } }
+    end
+
+    JiraSync.new(
+      epic_query: 'project = PG AND labels = "Priority"',
+      unplanned_query: "project = PG AND parent is EMPTY"
+    ).run!
+
+    assert_equal 0, Epic.active.count, "PG-5 must not appear as a column"
+    assert_equal 1, Issue.active.orphan.count
+    assert_equal "PG-5", Issue.active.orphan.first.jira_key
+  end
+
   test "skips unplanned fetch when unplanned_query is blank" do
     stub_request(:get, %r{/search}).to_return(
       status: 200,

@@ -66,6 +66,9 @@ class JiraSync
       orphans = @client.search_all(@unplanned_query, fields: ISSUE_FIELDS, expand: "changelog")
       seen_orphan_keys = []
       orphans.each do |ji|
+        if (clashing_epic = epics_by_key.delete(ji.key))
+          clashing_epic.update!(removed_at: now)
+        end
         upsert_issue(ji, nil, now)
         seen_orphan_keys << ji.key
       end
