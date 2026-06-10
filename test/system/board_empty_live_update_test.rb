@@ -33,12 +33,13 @@ class BoardEmptyLiveUpdateTest < ApplicationSystemTestCase
       { "summary" => "Fresh task",
         "status" => { "name" => "In Progress" },
         "issuetype" => { "name" => "Task" },
+        "parent" => { "key" => "PG-1" },
         "created" => 5.days.ago.iso8601 },
       { "changelog" => { "histories" => [] } }
     )
     fake_client.define_singleton_method(:search_all) do |jql, **_|
       case jql
-      when /parent\s*=\s*"?PG-1"?/i then [ child_payload ]
+      when /parent\s+in\s*\(\s*"?PG-1"?\s*\)/i then [ child_payload ]
       when /parent is EMPTY/i       then []
       when /labels.*Priority/i      then [ epic_payload ]
       else []
