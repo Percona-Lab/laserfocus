@@ -8,7 +8,7 @@ polling:
   idle_interval_minutes: 60
 
 board:
-  epic_query: 'project = PG AND labels = "Priority" AND status != Done'
+  epic_query: 'issuetype = Epic AND project = PG AND labels = "Priority" AND status != Done'
   # Optional. Issues without an epic parent that should appear in a leftmost
   # "Unplanned" column. Author the JQL with your own recency clause if you
   # want to also include recently-completed tickets, e.g.:
