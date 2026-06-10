@@ -64,6 +64,8 @@ class JiraSync
 
     if @unplanned_query.present?
       orphans = @client.search_all(@unplanned_query, fields: ISSUE_FIELDS, expand: "changelog")
+      tracked_epic_keys = epics_by_key.keys.to_set
+      orphans = orphans.reject { |ji| tracked_epic_keys.include?(ji.fields.dig("parent", "key")) }
       seen_orphan_keys = []
       orphans.each do |ji|
         if (clashing_epic = epics_by_key.delete(ji.key))

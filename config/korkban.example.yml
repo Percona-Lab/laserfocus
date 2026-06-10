@@ -9,11 +9,12 @@ polling:
 
 board:
   epic_query: 'issuetype = Epic AND project = PG AND labels = "Priority" AND status != Done'
-  # Optional. Issues without an epic parent that should appear in a leftmost
-  # "Unplanned" column. Author the JQL with your own recency clause if you
-  # want to also include recently-completed tickets, e.g.:
-  #   (statusCategory != Done OR resolved >= -7d)
-  unplanned_query: 'project = PG AND labels = "Priority" AND issuetype != Epic AND parent is EMPTY AND (statusCategory != Done OR resolved >= -7d)'
+  # Optional. Issues that should appear in a leftmost "Unplanned" column.
+  # Match all candidate tickets here (e.g. by Priority label); JiraSync will
+  # exclude any whose parent is a tracked epic. Author the JQL with your own
+  # recency clause if you want to also include recently-completed tickets,
+  # e.g.: (statusCategory != Done OR resolved >= -7d)
+  unplanned_query: 'project = PG AND labels = "Priority" AND issuetype != Epic AND (statusCategory != Done OR resolved >= -7d)'
   users:
     - { jira_username: "alice", display_name: "Alice" }
     - { jira_username: "bob",   display_name: "Bob" }
