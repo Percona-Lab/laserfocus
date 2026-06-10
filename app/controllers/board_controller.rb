@@ -1,5 +1,5 @@
 class BoardController < ApplicationController
-  ACTIVITY_HIGHLIGHT_DAYS = [ 1, 3, 7 ].freeze
+  ACTIVITY_HIGHLIGHT_DAYS = [ 1, 3, 7, 30 ].freeze
 
   def show
     @presenter = BoardPresenter.new(

@@ -14,6 +14,7 @@ class BoardPresenter
     def parent_jira_key = issue.parent_jira_key
     def labels          = issue.labels
     def components      = issue.components
+    def epic_id          = issue.epic_id
     def created_at_jira = issue.created_at_jira
     def status_changed_at_jira = issue.status_changed_at_jira
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira

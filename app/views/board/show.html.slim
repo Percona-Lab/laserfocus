@@ -8,7 +8,7 @@
 - active_assignees     = all_issues.map(&:assignee).map(&:to_s)
 - assignees = (configured_usernames + active_assignees).reject(&:empty?).uniq.sort
 
-.kb-shell data-controller="board" data-board-statuses-value="[]" data-board-assignees-value="[]" data-board-query-value="" data-board-activity-value="{}"
+.kb-shell data-controller="board" data-board-statuses-value="[]" data-board-assignees-value="[]" data-board-query-value="" data-board-activity-value="{}" data-board-ghost-epic-value="false"
 
   header.kb-header
     .kb-brand
@@ -32,6 +32,9 @@
       - @activity_days.each do |days|
         button.kb-act-pill type="button" data-board-target="activityPill" data-action="board#toggleActivity" data-dir="older" data-days=days data-on="0" title="Highlight tickets not updated in over #{pluralize(days, "day")}"
           | ≥#{days}d
+      span.kb-activity-sep aria-hidden="true"
+      button.kb-act-pill type="button" data-board-target="ghostEpicBtn" data-action="board#toggleGhostEpic" data-on="0" title="Unplanned tickets that belong to an EPIC without a Priority label — work happening outside agreed team goals"
+        | Ghost EPICs
 
     .kb-header-right
       span.kb-counts

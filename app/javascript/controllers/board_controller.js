@@ -4,18 +4,20 @@ import { Controller } from "@hotwired/stimulus"
 // people-filter (set from the people controller), and hover tooltip.
 // Each card has data-search/data-assignee/data-display-status driving the match.
 export default class extends Controller {
-  static targets = ["statusPill", "statusClear", "activityPill", "activityClear", "search", "root", "tooltip"]
+  static targets = ["statusPill", "statusClear", "activityPill", "activityClear", "ghostEpicBtn", "search", "root", "tooltip"]
   static values = {
     statuses: Array,
     assignees: Array,
     query: String,
-    activity: Object
+    activity: Object,
+    ghostEpic: Boolean
   }
 
   connect() {
     this.loadFromHash()
     this.syncStatusUI()
     this.syncActivityUI()
+    this.syncGhostEpicUI()
     if (this.hasSearchTarget) this.searchTarget.value = this.queryValue
     this.apply()
     this._onWinResize = () => this._positionTooltip()
@@ -90,6 +92,20 @@ export default class extends Controller {
     this.apply()
   }
 
+  // ---------- ghost epic filter ----------
+  toggleGhostEpic() {
+    this.ghostEpicValue = !this.ghostEpicValue
+    this.persist()
+    this.syncGhostEpicUI()
+    this.apply()
+  }
+
+  syncGhostEpicUI() {
+    if (this.hasGhostEpicBtnTarget) {
+      this.ghostEpicBtnTarget.dataset.on = this.ghostEpicValue ? "1" : "0"
+    }
+  }
+
   syncActivityUI() {
     const act = this.activityValue || {}
     const on = !!(act.dir && act.days)
@@ -138,7 +154,8 @@ export default class extends Controller {
     const pset = new Set(this.assigneesValue)
     const act = this.activityValue || {}
     const activityOn = !!(act.dir && act.days)
-    const anyFilter = q.length > 0 || sel.size > 0 || pset.size > 0 || activityOn
+    const ghostEpicOn = this.ghostEpicValue
+    const anyFilter = q.length > 0 || sel.size > 0 || pset.size > 0 || activityOn || ghostEpicOn
 
     const cards = this.element.querySelectorAll(".kb-card")
     cards.forEach((c) => {
@@ -156,7 +173,8 @@ export default class extends Controller {
         else if (act.dir === "newer") matchA = dsu <= act.days
         else matchA = dsu > act.days
       }
-      const match = matchQ && matchS && matchP && matchA
+      const matchG = !ghostEpicOn || c.dataset.ghostEpic === "1"
+      const match = matchQ && matchS && matchP && matchA && matchG
       if (anyFilter) {
         c.dataset.dim = match ? "0" : "1"
         c.dataset.spotlight = match ? "1" : "0"
@@ -358,7 +376,8 @@ export default class extends Controller {
       q: this.queryValue,
       s: this.statusesValue,
       a: this.assigneesValue,
-      v: this.activityValue
+      v: this.activityValue,
+      g: this.ghostEpicValue
     }
     location.hash = encodeURIComponent(JSON.stringify(state))
   }
@@ -371,6 +390,7 @@ export default class extends Controller {
       this.statusesValue = state.s || []
       this.assigneesValue = state.a || []
       this.activityValue = state.v || {}
+      this.ghostEpicValue = state.g || false
     } catch {}
   }
 }
