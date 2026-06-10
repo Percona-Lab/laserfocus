@@ -21,11 +21,24 @@ export default class extends Controller {
     this._onWinResize = () => this._positionTooltip()
     window.addEventListener("scroll", this._onWinResize, true)
     window.addEventListener("resize", this._onWinResize)
+    this._setupColumnDrag()
+    this._restoreColOrder()
+    this._colObserver = new MutationObserver(() => {
+      clearTimeout(this._morphTimer)
+      this._morphTimer = setTimeout(() => {
+        this._colObserver.disconnect()
+        this._restoreColOrder()
+        this._colObserver.observe(this.rootTarget, { childList: true })
+      }, 0)
+    })
+    this._colObserver.observe(this.rootTarget, { childList: true })
   }
 
   disconnect() {
     window.removeEventListener("scroll", this._onWinResize, true)
     window.removeEventListener("resize", this._onWinResize)
+    this._teardownColumnDrag()
+    if (this._colObserver) this._colObserver.disconnect()
   }
 
   // ---------- search ----------
@@ -233,6 +246,98 @@ export default class extends Controller {
     return String(s).replace(/[&<>"']/g, (c) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[c]))
+  }
+
+  // ---------- column drag-and-drop ----------
+  _setupColumnDrag() {
+    const root = this.rootTarget
+    this._draggedCol = null
+    this._dropTarget = null
+    this._dropBefore = false
+
+    this._onColDragStart = (e) => {
+      const head = e.target.closest(".kb-col-head")
+      if (!head) return
+      const col = head.closest(".kb-col")
+      if (!col) return
+      this._draggedCol = col
+      col.dataset.dragging = "1"
+      e.dataTransfer.effectAllowed = "move"
+      e.dataTransfer.setData("text/plain", col.dataset.epicKey || "")
+    }
+
+    this._onColDragOver = (e) => {
+      if (!this._draggedCol) return
+      const col = e.target.closest(".kb-col")
+      if (!col || col === this._draggedCol) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = "move"
+      const rect = col.getBoundingClientRect()
+      const before = e.clientX < rect.left + rect.width / 2
+      if (this._dropTarget !== col || this._dropBefore !== before) {
+        root.querySelectorAll(".kb-col[data-drop-side]").forEach(c => delete c.dataset.dropSide)
+        col.dataset.dropSide = before ? "left" : "right"
+        this._dropTarget = col
+        this._dropBefore = before
+      }
+    }
+
+    this._onColDrop = (e) => {
+      e.preventDefault()
+      root.querySelectorAll(".kb-col[data-drop-side]").forEach(c => delete c.dataset.dropSide)
+      if (this._dropTarget && this._draggedCol) {
+        if (this._dropBefore) {
+          root.insertBefore(this._draggedCol, this._dropTarget)
+        } else {
+          this._dropTarget.after(this._draggedCol)
+        }
+        this._saveColOrder()
+      }
+      this._dropTarget = null
+    }
+
+    this._onColDragEnd = () => {
+      if (this._draggedCol) {
+        delete this._draggedCol.dataset.dragging
+        this._draggedCol = null
+      }
+      root.querySelectorAll(".kb-col[data-drop-side]").forEach(c => delete c.dataset.dropSide)
+      this._dropTarget = null
+    }
+
+    root.addEventListener("dragstart", this._onColDragStart)
+    root.addEventListener("dragover", this._onColDragOver)
+    root.addEventListener("drop", this._onColDrop)
+    root.addEventListener("dragend", this._onColDragEnd)
+  }
+
+  _teardownColumnDrag() {
+    if (!this.hasRootTarget) return
+    const root = this.rootTarget
+    root.removeEventListener("dragstart", this._onColDragStart)
+    root.removeEventListener("dragover", this._onColDragOver)
+    root.removeEventListener("drop", this._onColDrop)
+    root.removeEventListener("dragend", this._onColDragEnd)
+  }
+
+  _saveColOrder() {
+    const order = [...this.rootTarget.querySelectorAll(":scope > .kb-col")].map(c => c.dataset.epicKey)
+    localStorage.setItem("kb-col-order", JSON.stringify(order))
+  }
+
+  _restoreColOrder() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("kb-col-order") || "null")
+      if (!saved || !Array.isArray(saved) || saved.length === 0) return
+      const root = this.rootTarget
+      const cols = [...root.querySelectorAll(":scope > .kb-col")]
+      const byKey = Object.fromEntries(cols.map(c => [c.dataset.epicKey, c]))
+      const seen = new Set()
+      saved.forEach(key => {
+        if (byKey[key]) { root.appendChild(byKey[key]); seen.add(key) }
+      })
+      cols.forEach(c => { if (!seen.has(c.dataset.epicKey)) root.appendChild(c) })
+    } catch {}
   }
 
   // ---------- persistence ----------

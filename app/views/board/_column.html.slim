@@ -10,7 +10,7 @@
 - dist_buckets = ordered_display_states.map { |s| n = all_issues.count { |p| p.display_status == s[:id] }; [s, n] }.select { |_, n| n > 0 }
 
 section.kb-col data-epic-key=epic.jira_key data-controller="stack" data-stack-todo-open-value="false" data-stack-done-open-value="false"
-  .kb-col-head
+  .kb-col-head draggable="true"
     .kb-col-accent style="background:#{accent};"
     .kb-col-title-row
       span.kb-col-name title=epic.name

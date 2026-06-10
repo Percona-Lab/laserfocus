@@ -364,6 +364,13 @@ html, body { background: var(--kb-bg); font-family: var(--kb-ui); color: var(--k
 [data-theme="dark"] .kb-card[data-staleness="somewhat"] .kb-avatar { box-shadow: 0 0 0 1.5px #2a2317; }
 [data-theme="dark"] .kb-card[data-staleness="really"] .kb-avatar { box-shadow: 0 0 0 1.5px #2c1818; }
 
+/* ---------- column drag-and-drop ---------- */
+.kb-col-head { cursor: grab; user-select: none; }
+.kb-col-head:active { cursor: grabbing; }
+.kb-col[data-dragging="1"] { opacity: 0.4; }
+.kb-col[data-drop-side="left"]  { box-shadow: -3px 0 0 0 #3b82f6; }
+.kb-col[data-drop-side="right"] { box-shadow:  3px 0 0 0 #3b82f6; }
+
 /* animations */
 .kb-fade-in { animation: pgfade .16s ease-out; }
 @keyframes pgfade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
