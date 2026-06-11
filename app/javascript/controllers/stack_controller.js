@@ -1,29 +1,31 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Manages the per-column expand/collapse for the To Do and Done stacks.
+// Manages per-column expand/collapse for To Do, Done, and all middle status groups.
 // Also reports hidden filter matches up to the board controller for the
 // "n matches" highlight on the stack button.
 export default class extends Controller {
   static targets = [
     "todoBtn", "todoBody", "todoTrail", "todoShadow", "todoWrap", "middleDivider",
-    "doneBtn", "doneBody", "doneTrail", "doneShadow", "doneWrap"
+    "doneBtn", "doneBody", "doneTrail", "doneShadow", "doneWrap",
+    "middleBtn", "middleBody", "middleShadow", "middleTrail", "collapseAllBtn"
   ]
   static values = {
     todoOpen: Boolean,
-    doneOpen: Boolean
+    doneOpen: Boolean,
+    middleOpen: Object
   }
 
   connect() {
-    // expose self so the board controller can ask us to refresh hit counts
     this.element.stackController = this
-    // The board auto-refreshes via turbo-stream morph; the server re-renders
-    // the column with the default open=false attributes, which would otherwise
-    // collapse the user's expanded sections. Track intent here and restore
-    // after each morph of this section.
     this._intendedTodoOpen = this.todoOpenValue
     this._intendedDoneOpen = this.doneOpenValue
+    const initialMiddle = {}
+    this.middleBtnTargets.forEach(btn => { initialMiddle[btn.dataset.status] = true })
+    this.middleOpenValue = initialMiddle
+    this._intendedMiddleOpen = { ...initialMiddle }
     this.applyTodo()
     this.applyDone()
+    this.applyMiddle()
     this._onMorph = this._onMorph.bind(this)
     this.element.addEventListener("turbo:morph-element", this._onMorph)
   }
@@ -44,12 +46,42 @@ export default class extends Controller {
     this.applyDone()
   }
 
+  toggleMiddle(event) {
+    const status = event.currentTarget.dataset.status
+    const current = { ...this.middleOpenValue }
+    current[status] = !current[status]
+    this.middleOpenValue = current
+    this._intendedMiddleOpen = { ...current }
+    this.applyMiddle()
+  }
+
+  toggleAll() {
+    const newState = !this._isAnyOpen()
+    if (this.hasTodoBtnTarget) { this.todoOpenValue = newState; this._intendedTodoOpen = newState }
+    if (this.hasDoneBtnTarget) { this.doneOpenValue = newState; this._intendedDoneOpen = newState }
+    const middle = {}
+    this.middleBtnTargets.forEach(btn => { middle[btn.dataset.status] = newState })
+    this.middleOpenValue = middle
+    this._intendedMiddleOpen = { ...middle }
+    this.applyTodo()
+    this.applyDone()
+    this.applyMiddle()
+  }
+
   _onMorph(event) {
     if (event.target !== this.element) return
     this.todoOpenValue = this._intendedTodoOpen
     this.doneOpenValue = this._intendedDoneOpen
+    // Restore middle state; default-open any new groups that appeared after morph
+    const restored = { ...this._intendedMiddleOpen }
+    this.middleBtnTargets.forEach(btn => {
+      if (!(btn.dataset.status in restored)) restored[btn.dataset.status] = true
+    })
+    this.middleOpenValue = { ...restored }
+    this._intendedMiddleOpen = { ...restored }
     this.applyTodo()
     this.applyDone()
+    this.applyMiddle()
   }
 
   applyTodo() {
@@ -60,6 +92,7 @@ export default class extends Controller {
     if (this.hasTodoShadowTarget) this.todoShadowTarget.hidden = open
     if (this.hasMiddleDividerTarget) this.middleDividerTarget.hidden = !open
     this.refreshHits()
+    this._updateCollapseAllBtn()
   }
 
   applyDone() {
@@ -69,6 +102,35 @@ export default class extends Controller {
     this.doneBodyTarget.hidden = !open
     if (this.hasDoneShadowTarget) this.doneShadowTarget.hidden = open
     this.refreshHits()
+    this._updateCollapseAllBtn()
+  }
+
+  applyMiddle() {
+    this.middleBtnTargets.forEach(btn => {
+      const status = btn.dataset.status
+      const open = this.middleOpenValue[status] !== false
+      btn.dataset.open = open ? "1" : "0"
+      const body = this.middleBodyTargets.find(b => b.dataset.status === status)
+      if (body) body.hidden = !open
+      const shadow = this.middleShadowTargets.find(s => s.dataset.status === status)
+      if (shadow) shadow.hidden = open
+      const trail = this.middleTrailTargets.find(t => t.dataset.status === status)
+      if (trail) trail.textContent = open ? "hide" : "show"
+    })
+    this._updateCollapseAllBtn()
+  }
+
+  _isAnyOpen() {
+    if (this.hasTodoBtnTarget && this.todoOpenValue) return true
+    if (this.hasDoneBtnTarget && this.doneOpenValue) return true
+    return this.middleBtnTargets.some(btn => this.middleOpenValue[btn.dataset.status] !== false)
+  }
+
+  _updateCollapseAllBtn() {
+    if (!this.hasCollapseAllBtnTarget) return
+    const anyOpen = this._isAnyOpen()
+    this.collapseAllBtnTarget.dataset.open = anyOpen ? "1" : "0"
+    this.collapseAllBtnTarget.title = anyOpen ? "Collapse all sections" : "Expand all sections"
   }
 
   refreshHits() {
@@ -94,7 +156,6 @@ export default class extends Controller {
   }
 
   _renderHits(btn, trail, open, hits, body) {
-    // remove old hits chip
     const old = btn.querySelector(".kb-stack-hits")
     if (old) old.remove()
     if (!trail) return

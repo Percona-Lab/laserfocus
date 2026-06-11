@@ -7,7 +7,6 @@
 - todo_count  = todo_rows.size
 - done_count  = done_rows.size
 - middle_count = middle_rows.values.sum(&:size)
-- visible_middle_group_count = middle_rows.values.count(&:any?)
 - stale_count = column.middle_groups.values.flatten.count { |p| %i[somewhat really].include?(p.staleness) }
 - accent_palette = %w[#6366f1 #e11d48 #d97706 #0ea5e9 #8b5cf6 #0d9488 #10b981 #ea580c #c026d3 #64748b]
 - accent = accent_palette[(epic.jira_key.to_s.bytes.sum % accent_palette.size)]
@@ -24,15 +23,23 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
         a.kb-col-name href=jira_url(epic.jira_key) target="_blank" rel="noreferrer" title=epic.name draggable="false"
           = epic.name
       span.kb-col-count= total
+      button.kb-col-collapse-btn type="button" data-stack-target="collapseAllBtn" data-action="stack#toggleAll" data-open="1" title="Collapse all sections"
+        svg.kb-col-compress width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          path d="M2 3 L6 6 L10 3"
+          path d="M2 9 L6 6 L10 9"
+        svg.kb-col-expand width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          path d="M2 6 L6 3 L10 6"
+          path d="M2 6 L6 9 L10 6"
     .kb-col-meta
       - unless epic.jira_key == "UNPLANNED"
-        span.kb-col-key= epic.jira_key
         - epic_avatar = avatar_for(epic.assignee_name)
-        span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;" title=epic_avatar[:name]
-          = epic_avatar[:initials]
+        span.kb-col-key= epic.jira_key
       - if stale_count > 0
         span.kb-col-stale
           | ⚠ #{stale_count} stale
+      - unless epic.jira_key == "UNPLANNED"
+        span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;margin-left:auto;" title=epic_avatar[:name]
+          = epic_avatar[:initials]
     .kb-dist aria-hidden="true"
       - dist_buckets.each do |s, n|
         span title="#{s[:label]}: #{n}" style="flex:#{n};background:#{s[:color]};"
@@ -44,10 +51,8 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
         button.kb-stack-btn type="button" style="--kb-stack-color:#{state_meta('new')[:color]};" data-stack-target="todoBtn" data-action="stack#toggleTodo" data-open="0"
           svg.kb-stack-chev width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"
             path d="M3 2l4 3-4 3" stroke="#64748b" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"
-          svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"
-            circle cx="5.5" cy="5.5" r="4" fill="none" stroke="#94a3b8" stroke-width="1.5"
           span.kb-stack-count= todo_count
-          span.kb-stack-label To Do
+          span.kb-stack-label= state_meta('new')[:label].upcase
           span.kb-stack-trail data-stack-target="todoTrail"
             | show
         .kb-stack-body data-stack-target="todoBody" hidden=true
@@ -64,13 +69,18 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
       - rows = middle_rows[display_status]
       - next if rows.empty?
       - st = state_meta(display_status)
-      - if visible_middle_group_count > 1
-        .kb-divider
-          span.kb-divider-text style="color:#{st[:deep]};"
-            = st[:label].upcase
-          span.kb-divider-line
-      - rows.each do |row|
-        = render "board/postit", p: row.postit, nested: row.depth > 0
+      .kb-stack-wrap
+        .kb-stack-shadow data-stack-target="middleShadow" data-status=display_status hidden=true
+        button.kb-stack-btn type="button" style="--kb-stack-color:#{st[:color]};" data-stack-target="middleBtn" data-status=display_status data-action="stack#toggleMiddle" data-open="1"
+          svg.kb-stack-chev width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"
+            path d="M3 2l4 3-4 3" stroke="#64748b" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"
+          span.kb-stack-count= rows.size
+          span.kb-stack-label= st[:label].upcase
+          span.kb-stack-trail data-stack-target="middleTrail" data-status=display_status
+            | hide
+        .kb-stack-body data-stack-target="middleBody" data-status=display_status
+          - rows.each do |row|
+            = render "board/postit", p: row.postit, nested: row.depth > 0
 
     - if done_count > 0
       .kb-stack-wrap data-stack-target="doneWrap"
@@ -78,10 +88,8 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
         button.kb-stack-btn type="button" style="--kb-stack-color:#{state_meta('done')[:color]};" data-stack-target="doneBtn" data-action="stack#toggleDone" data-open="0"
           svg.kb-stack-chev width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"
             path d="M3 2l4 3-4 3" stroke="#64748b" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"
-          svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true"
-            path d="M3 5.7l1.8 1.8L8.2 4" stroke="#22c55e" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"
           span.kb-stack-count= done_count
-          span.kb-stack-label Done
+          span.kb-stack-label= state_meta('done')[:label].upcase
           span.kb-stack-trail data-stack-target="doneTrail"
             | show
         .kb-stack-body data-stack-target="doneBody" hidden=true
