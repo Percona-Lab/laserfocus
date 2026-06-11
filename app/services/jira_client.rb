@@ -21,12 +21,16 @@ class JiraClient
     @client.Issue.jql(jql, max_results: PAGE_SIZE, fields: fields, expand: expand)
   end
 
-  def dev_status_prs(jira_id)
+  def pr_app_types(jira_id)
     summary = JSON.parse(@client.get("/rest/dev-status/latest/issue/summary?issueId=#{jira_id}").body)
-    app_types = (summary.dig("summary", "pullrequest", "byInstanceType") || {})
-                .select { |_k, v| v["count"].to_i > 0 }.keys
-    return [] if app_types.empty?
+    (summary.dig("summary", "pullrequest", "byInstanceType") || {}).keys
+  rescue => e
+    Rails.logger.debug("[JiraClient] pr_app_types(#{jira_id}): #{e.class}: #{e.message}")
+    []
+  end
 
+  def dev_status_prs(jira_id, app_types)
+    return [] if app_types.empty?
     app_types.flat_map do |app_type|
       data = JSON.parse(@client.get("/rest/dev-status/latest/issue/detail?issueId=#{jira_id}&applicationType=#{app_type}&dataType=pullrequest").body)
       data.dig("detail")&.flat_map { |d| d["pullRequests"] || [] } || []

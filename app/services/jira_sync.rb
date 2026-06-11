@@ -163,10 +163,17 @@ class JiraSync
   end
 
   def sync_pull_requests!(issue_keys)
-    issue_keys.each do |key|
-      jira_id = Issue.where(jira_key: key).pick(:jira_id)
-      next unless jira_id.present?
-      raw_prs = @client.dev_status_prs(jira_id)
+    return if issue_keys.empty?
+
+    id_map = Issue.where(jira_key: issue_keys).pluck(:jira_key, :jira_id)
+                  .each_with_object({}) { |(k, id), h| h[k] = id if id.present? }
+    return if id_map.empty?
+
+    app_types = discover_pr_app_types(id_map.values)
+    return if app_types.empty?
+
+    id_map.each do |key, jira_id|
+      raw_prs = @client.dev_status_prs(jira_id, app_types)
       prs = extract_prs(raw_prs)
       Issue.where(jira_key: key).update_all(pull_requests: prs)
     rescue => e
@@ -174,6 +181,14 @@ class JiraSync
     end
   rescue => e
     Rails.logger.warn("[JiraSync] PR sync skipped: #{e.message}")
+  end
+
+  def discover_pr_app_types(jira_ids)
+    jira_ids.each do |jira_id|
+      types = @client.pr_app_types(jira_id)
+      return types if types.any?
+    end
+    []
   end
 
   def extract_prs(raw_prs)
