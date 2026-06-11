@@ -290,7 +290,8 @@ export default class extends Controller {
     let left = r.right + 10
     if (left + W > window.innerWidth - 8) left = r.left - W - 10
     let top = r.top
-    top = Math.min(top, window.innerHeight - 240)
+    const ttH = tt.offsetHeight || 240
+    top = Math.min(top, window.innerHeight - ttH - 8)
     top = Math.max(8, top)
     tt.style.left = left + "px"
     tt.style.top = top + "px"
