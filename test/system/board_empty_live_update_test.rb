@@ -1,7 +1,7 @@
 require "application_system_test_case"
 
 class BoardEmptyLiveUpdateTest < ApplicationSystemTestCase
-  FakeJiraIssue = Struct.new(:key, :fields, :attrs)
+  FakeJiraIssue = Struct.new(:key, :fields, :attrs, :id)
 
   setup do
     Issue.delete_all
