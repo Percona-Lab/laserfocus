@@ -31,7 +31,7 @@ class SessionsController < ApplicationController
   def allowed?(email)
     return false if email.blank?
     domain = email.split("@", 2).last
-    KORKBAN_CONFIG.auth.allowed_emails.include?(email) ||
-      KORKBAN_CONFIG.auth.allowed_domains.include?(domain)
+    LASER_FOCUS_CONFIG.auth.allowed_emails.include?(email) ||
+      LASER_FOCUS_CONFIG.auth.allowed_domains.include?(domain)
   end
 end

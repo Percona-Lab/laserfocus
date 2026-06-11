@@ -4,7 +4,7 @@
 - all_issues   = @presenter.columns.flat_map(&:all_issues)
 - total_tickets = all_issues.size
 - total_stale  = all_issues.count { |p| %i[somewhat really].include?(p.staleness) }
-- configured_usernames = KORKBAN_CONFIG.board.users.map { |u| u.jira_username.to_s }
+- configured_usernames = LASER_FOCUS_CONFIG.board.users.map { |u| u.jira_username.to_s }
 - active_assignees     = all_issues.map(&:assignee).map(&:to_s)
 - assignees = (configured_usernames + active_assignees).reject(&:empty?).uniq.sort
 
@@ -13,7 +13,7 @@
   header.kb-header
     .kb-brand
       = image_tag "/icon.png", alt: "", class: "kb-brand-logo"
-      span.kb-brand-name KorkBan
+      span.kb-brand-name LaserFocus
 
     .kb-status-pills role="group" aria-label="Filter by status"
       - @presenter.configured_display_statuses.each do |id|

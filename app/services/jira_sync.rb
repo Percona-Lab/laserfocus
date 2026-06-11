@@ -2,8 +2,8 @@ class JiraSync
   EPIC_FIELDS  = %w[summary status priority assignee].freeze
   ISSUE_FIELDS = %w[summary status issuetype assignee priority created parent labels components].freeze
 
-  def initialize(epic_query: KORKBAN_CONFIG.board.epic_query,
-                 unplanned_query: KORKBAN_CONFIG.board.unplanned_query,
+  def initialize(epic_query: LASER_FOCUS_CONFIG.board.epic_query,
+                 unplanned_query: LASER_FOCUS_CONFIG.board.unplanned_query,
                  client: JiraClient.new)
     @epic_query = epic_query
     @unplanned_query = unplanned_query
@@ -208,13 +208,13 @@ class JiraSync
     BoardPresenter.new(
       epics: Epic.active.ordered.includes(:issues),
       orphan_issues: Issue.active.orphan,
-      status_map: KORKBAN_CONFIG.board.status_map,
-      new_statuses: KORKBAN_CONFIG.board.new_statuses,
-      done_statuses: KORKBAN_CONFIG.board.done_statuses,
+      status_map: LASER_FOCUS_CONFIG.board.status_map,
+      new_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
+      done_statuses: LASER_FOCUS_CONFIG.board.done_statuses,
       staleness: StalenessCalculator.new(
         now: Time.current,
-        somewhat_days: KORKBAN_CONFIG.board.staleness.somewhat_days,
-        really_days: KORKBAN_CONFIG.board.staleness.really_days
+        somewhat_days: LASER_FOCUS_CONFIG.board.staleness.somewhat_days,
+        really_days: LASER_FOCUS_CONFIG.board.staleness.really_days
       )
     )
   end

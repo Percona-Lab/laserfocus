@@ -60,8 +60,8 @@ module BoardHelper
 
   def self.swatch_table
     cfg_values =
-      if defined?(KORKBAN_CONFIG) && KORKBAN_CONFIG.board.status_map
-        KORKBAN_CONFIG.board.status_map.values.uniq
+      if defined?(LASER_FOCUS_CONFIG) && LASER_FOCUS_CONFIG.board.status_map
+        LASER_FOCUS_CONFIG.board.status_map.values.uniq
       else
         []
       end
@@ -173,8 +173,8 @@ module BoardHelper
 
   def ordered_display_states
     configured =
-      if defined?(KORKBAN_CONFIG) && KORKBAN_CONFIG.board.status_map
-        KORKBAN_CONFIG.board.status_map.values.uniq
+      if defined?(LASER_FOCUS_CONFIG) && LASER_FOCUS_CONFIG.board.status_map
+        LASER_FOCUS_CONFIG.board.status_map.values.uniq
       else
         DISPLAY_STATES.map { |s| s[:id] }
       end

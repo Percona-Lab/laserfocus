@@ -5,8 +5,8 @@ class JiraSyncJob < ApplicationJob
 
   def perform
     user = User.singleton
-    active_window = KORKBAN_CONFIG.polling.active_window_minutes.minutes
-    idle_interval = KORKBAN_CONFIG.polling.idle_interval_minutes.minutes
+    active_window = LASER_FOCUS_CONFIG.polling.active_window_minutes.minutes
+    idle_interval = LASER_FOCUS_CONFIG.polling.idle_interval_minutes.minutes
 
     active = user.last_seen_at && user.last_seen_at >= Time.current - active_window
 

@@ -1,6 +1,6 @@
 .min-h-screen.flex.items-center.justify-center.bg-slate-100
   .p-8.bg-white.rounded.shadow.text-center
-    h1.text-xl.font-semibold.mb-4 korkban
+    h1.text-xl.font-semibold.mb-4 laserfocus
     - if flash[:alert]
       p.text-red-600.mb-4= flash[:alert]
     = button_to "Sign in with Google", "/auth/google_oauth2", method: :post, class: "px-4 py-2 bg-blue-600 text-white rounded", data: { turbo: false }

@@ -6,7 +6,7 @@ class JiraClient
   MAX_RETRY_WAIT = 60
   DEFAULT_BACKOFF = 2
 
-  def initialize(cfg: KORKBAN_CONFIG.jira)
+  def initialize(cfg: LASER_FOCUS_CONFIG.jira)
     @client = JIRA::Client.new(
       username:     cfg.email,
       password:     cfg.api_token,

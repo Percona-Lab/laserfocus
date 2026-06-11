@@ -38,4 +38,4 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
-/config/korkban.yml
+/config/laserfocus.yml

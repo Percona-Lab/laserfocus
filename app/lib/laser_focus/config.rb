@@ -1,7 +1,7 @@
 require "yaml"
 require "ostruct"
 
-module Korkban
+module LaserFocus
   class Config
     class MissingKey < StandardError; end
 

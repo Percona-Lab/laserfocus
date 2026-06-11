@@ -1,7 +1,7 @@
-# korkban
+# laserfocus
 
 A read-only Kanban-style dashboard for a JIRA project. 
-Korkban polls JIRA on a schedule, stores a denormalized snapshot in SQLite, and renders a fast board view that highlights stale tickets.
+LaserFocus polls JIRA on a schedule, stores a denormalized snapshot in SQLite, and renders a fast board view that highlights stale tickets.
 
 ## What you get
 
@@ -13,11 +13,11 @@ Korkban polls JIRA on a schedule, stores a denormalized snapshot in SQLite, and 
 ## Quick start
 
 ```sh
-git clone https://github.com/dutow/korkban.git korkban
-cd korkban
+git clone https://github.com/dutow/laserfocus.git laserfocus
+cd laserfocus
 
 cp .env.example .env                    # JIRA + Google OAuth secrets
-cp config/korkban.example.yml config/korkban.yml   # board config
+cp config/laserfocus.example.yml config/laserfocus.yml   # board config
 
 task dev                                # http://localhost:3000
 ```
@@ -26,11 +26,11 @@ That's it — `task dev` builds the dev image, boots the app, and brings up
 a headless Chromium sidecar used by the system tests.
 
 Sign in with a Google account whose email matches `auth.allowed_domains`
-or `auth.allowed_emails` in `config/korkban.yml`.
+or `auth.allowed_emails` in `config/laserfocus.yml`.
 
 ## Configuration
 
-Two files. Secrets go in `.env`, everything else in `config/korkban.yml`.
+Two files. Secrets go in `.env`, everything else in `config/laserfocus.yml`.
 
 ### `.env`
 
@@ -43,9 +43,9 @@ Two files. Secrets go in `.env`, everything else in `config/korkban.yml`.
 | `SECRET_KEY_BASE` | Rails secret (prod) |
 | `RAILS_MASTER_KEY` | Contents of `config/master.key` (prod) |
 
-### `config/korkban.yml`
+### `config/laserfocus.yml`
 
-See `config/korkban.example.yml` for a fully-commented sample. The
+See `config/laserfocus.example.yml` for a fully-commented sample. The
 important sections:
 
 - `auth.allowed_domains` / `auth.allowed_emails` — who can log in.
