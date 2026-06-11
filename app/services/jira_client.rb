@@ -21,6 +21,21 @@ class JiraClient
     @client.Issue.jql(jql, max_results: PAGE_SIZE, fields: fields, expand: expand)
   end
 
+  def dev_status_prs(jira_id)
+    summary = JSON.parse(@client.get("/rest/dev-status/latest/issue/summary?issueId=#{jira_id}").body)
+    app_types = (summary.dig("summary", "pullrequest", "byInstanceType") || {})
+                .select { |_k, v| v["count"].to_i > 0 }.keys
+    return [] if app_types.empty?
+
+    app_types.flat_map do |app_type|
+      data = JSON.parse(@client.get("/rest/dev-status/latest/issue/detail?issueId=#{jira_id}&applicationType=#{app_type}&dataType=pullrequest").body)
+      data.dig("detail")&.flat_map { |d| d["pullRequests"] || [] } || []
+    end
+  rescue => e
+    Rails.logger.debug("[JiraClient] dev_status_prs(#{jira_id}): #{e.class}: #{e.message}")
+    []
+  end
+
   private
 
   def install_rate_limit_retry(request_client)

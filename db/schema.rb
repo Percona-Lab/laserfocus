@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_183225) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_11_120000) do
   create_table "board_snapshots", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -37,10 +37,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_183225) do
     t.datetime "created_at_jira"
     t.integer "epic_id"
     t.string "issue_type", null: false
+    t.string "jira_id"
     t.string "jira_key", null: false
     t.string "jira_status", null: false
     t.datetime "last_seen_in_query_at"
     t.integer "priority"
+    t.json "pull_requests", default: []
     t.json "raw_fields"
     t.datetime "removed_at"
     t.datetime "status_changed_at_jira"

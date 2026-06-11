@@ -6,6 +6,11 @@ class JiraSyncTest < ActiveSupport::TestCase
     WebMock.disable_net_connect!
     Issue.delete_all
     Epic.delete_all
+    stub_request(:get, %r{/dev-status}).to_return(
+      status: 200,
+      body: '{"errors":[],"configErrors":[],"summary":{"pullrequest":{"overall":{"count":0},"byInstanceType":{}}},"detail":[]}',
+      headers: { "Content-Type" => "application/json" }
+    )
   end
 
   test "upserts epics and their children" do

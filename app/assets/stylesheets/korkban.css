@@ -401,7 +401,7 @@ a.kb-col-name:hover { text-decoration: underline; }
 
 /* ---------- hover tooltip ---------- */
 .kb-tt {
-  position: fixed; z-index: 80; pointer-events: none;
+  position: fixed; z-index: 80; pointer-events: auto;
   background: #1c2330; color: #e8ecf2; border-radius: 10px;
   padding: 13px 15px; box-shadow: 0 12px 40px rgba(0,0,0,.35);
   font-family: var(--kb-ui); width: 270px;
@@ -420,6 +420,11 @@ a.kb-col-name:hover { text-decoration: underline; }
 }
 .kb-tt-grid .lbl { color: #9aa3b0; font-weight: 500; }
 .kb-tt-grid .val { color: #e8ecf2; font-weight: 500; }
+.kb-tt-prs { border-top: 1px solid rgba(255,255,255,.08); margin-top: 9px; padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.kb-tt-pr-link { display: flex; align-items: center; gap: 7px; padding: 4px 5px; border-radius: 5px; text-decoration: none; color: #e8ecf2; font-size: 11.5px; font-weight: 500; overflow: hidden; transition: background .1s; }
+.kb-tt-pr-link:hover { background: rgba(255,255,255,.07); }
+.kb-tt-pr-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.kb-tt-pr-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kb-tt-hint { font-size: 10.5px; color: #6b7689; margin-top: 9px; }
 
 /* diff banner placeholder area (future) */
@@ -488,3 +493,45 @@ a.kb-col-name:hover { text-decoration: underline; }
 .kb-col-collapse-btn:hover { background: var(--kb-input-hover); color: var(--kb-text); }
 .kb-col-collapse-btn[data-open="0"] .kb-col-compress { display: none; }
 .kb-col-collapse-btn[data-open="1"] .kb-col-expand  { display: none; }
+
+/* ---------- PR button on cards ---------- */
+.kb-pr-btn {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--kb-border-strong);
+  background: transparent;
+  border-radius: 4px;
+  padding: 0;
+  cursor: pointer;
+  color: var(--kb-text-mute);
+  flex: 0 0 auto;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.kb-pr-btn:hover { background: var(--kb-input-hover); color: var(--kb-text); border-color: var(--kb-text-faint); }
+
+/* Floating PR multi-PR picker */
+.kb-pr-popup {
+  position: fixed;
+  z-index: 200;
+  background: var(--kb-menu-bg);
+  border: 1px solid var(--kb-border-strong);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15);
+  padding: 4px;
+  width: 260px;
+  font-family: var(--kb-ui);
+}
+.kb-pr-row {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  text-decoration: none;
+  color: var(--kb-text);
+  font-size: 11.5px;
+  font-weight: 500;
+  overflow: hidden;
+  transition: background .1s;
+}
+.kb-pr-row:hover { background: var(--kb-menu-hover); }
+.kb-pr-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+.kb-pr-row-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

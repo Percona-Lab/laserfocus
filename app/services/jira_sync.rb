@@ -64,10 +64,10 @@ class JiraSync
 
     Epic.active.where.not(jira_key: epics_by_key.keys).update_all(removed_at: now)
 
+    seen_orphan_keys = []
     if @unplanned_query.present?
       orphans = @client.search_all(@unplanned_query, fields: ISSUE_FIELDS, expand: "changelog")
       orphans = orphans.reject { |ji| all_assigned_keys.include?(ji.key) }
-      seen_orphan_keys = []
       orphans.each do |ji|
         if (clashing_epic = epics_by_key.delete(ji.key))
           clashing_epic.update!(removed_at: now)
@@ -78,6 +78,8 @@ class JiraSync
       Issue.active.orphan.where.not(jira_key: seen_orphan_keys).update_all(removed_at: now)
       fetched += orphans.size
     end
+
+    sync_pull_requests!(all_assigned_keys.to_a + seen_orphan_keys)
 
     run.update!(finished_at: Time.current, ok: true, fetched_count: fetched)
     BoardSnapshot.bump!
@@ -120,6 +122,7 @@ class JiraSync
     new_status = ji.fields.dig("status", "name")
 
     issue.assign_attributes(
+      jira_id: ji.id,
       epic: epic,
       summary: ji.fields["summary"],
       jira_status: new_status,
@@ -157,6 +160,33 @@ class JiraSync
 
   def parse_time(s)
     Time.parse(s) rescue nil
+  end
+
+  def sync_pull_requests!(issue_keys)
+    issue_keys.each do |key|
+      jira_id = Issue.where(jira_key: key).pick(:jira_id)
+      next unless jira_id.present?
+      raw_prs = @client.dev_status_prs(jira_id)
+      prs = extract_prs(raw_prs)
+      Issue.where(jira_key: key).update_all(pull_requests: prs)
+    rescue => e
+      Rails.logger.warn("[JiraSync] PR sync failed for #{key}: #{e.message}")
+    end
+  rescue => e
+    Rails.logger.warn("[JiraSync] PR sync skipped: #{e.message}")
+  end
+
+  def extract_prs(raw_prs)
+    raw_prs.filter_map do |pr|
+      url = pr["url"].to_s
+      next if url.empty?
+      {
+        "url"    => url,
+        "title"  => (pr["name"] || pr["id"]).to_s,
+        "merged" => pr["status"] == "MERGED",
+        "closed" => pr["status"] == "DECLINED"
+      }
+    end
   end
 
   def build_presenter

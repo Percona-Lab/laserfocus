@@ -15,6 +15,7 @@ class BoardPresenter
     def labels          = issue.labels
     def components      = issue.components
     def epic_id          = issue.epic_id
+    def pull_requests    = issue.pull_requests
     def created_at_jira = issue.created_at_jira
     def status_changed_at_jira = issue.status_changed_at_jira
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira

@@ -4,6 +4,11 @@ class Issue < ApplicationRecord
   scope :active, -> { where(removed_at: nil) }
   scope :orphan, -> { where(epic_id: nil) }
 
+  def pull_requests
+    val = read_attribute(:pull_requests)
+    val.is_a?(Array) ? val.select { |p| p.is_a?(Hash) } : []
+  end
+
   def parent_jira_key
     fields = raw_fields || {}
     parent = fields["parent"] || fields[:parent]

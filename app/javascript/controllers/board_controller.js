@@ -34,6 +34,12 @@ export default class extends Controller {
       }, 0)
     })
     this._colObserver.observe(this.rootTarget, { childList: true })
+    if (this.hasTooltipTarget) {
+      this._ttEnter = () => clearTimeout(this._ttHideTimer)
+      this._ttLeave = () => { this._ttHideTimer = setTimeout(() => this._doHide(), 80) }
+      this.tooltipTarget.addEventListener("mouseenter", this._ttEnter)
+      this.tooltipTarget.addEventListener("mouseleave", this._ttLeave)
+    }
   }
 
   disconnect() {
@@ -41,6 +47,10 @@ export default class extends Controller {
     window.removeEventListener("resize", this._onWinResize)
     this._teardownColumnDrag()
     if (this._colObserver) this._colObserver.disconnect()
+    if (this.hasTooltipTarget && this._ttEnter) {
+      this.tooltipTarget.removeEventListener("mouseenter", this._ttEnter)
+      this.tooltipTarget.removeEventListener("mouseleave", this._ttLeave)
+    }
   }
 
   // ---------- search ----------
@@ -208,11 +218,16 @@ export default class extends Controller {
   showTooltip(event) {
     const card = event.currentTarget
     clearTimeout(this._ttTimer)
+    clearTimeout(this._ttHideTimer)
     this._ttTimer = setTimeout(() => this._renderTooltip(card), 140)
   }
 
   hideTooltip() {
     clearTimeout(this._ttTimer)
+    this._ttHideTimer = setTimeout(() => this._doHide(), 80)
+  }
+
+  _doHide() {
     if (this.hasTooltipTarget) this.tooltipTarget.hidden = true
     this._ttAnchor = null
   }
@@ -234,6 +249,15 @@ export default class extends Controller {
     const componentsRow = ds.tooltipComponents
       ? `<span class="lbl">Components</span><span class="val">${this._esc(ds.tooltipComponents)}</span>`
       : ""
+    let prs = []
+    try { prs = JSON.parse(ds.tooltipPrs || "[]") } catch (_) {}
+    const prsHtml = prs.length
+      ? `<div class="kb-tt-prs">${prs.map(pr => `
+          <a class="kb-tt-pr-link" href="${this._esc(pr.url)}" target="_blank" rel="noreferrer">
+            <span class="kb-tt-pr-dot" style="background:${pr.merged ? "#8b5cf6" : pr.closed ? "#ef4444" : "#22c55e"}"></span>
+            <span class="kb-tt-pr-title">${this._esc(pr.title || pr.url)}</span>
+          </a>`).join("")}</div>`
+      : ""
     this.tooltipTarget.innerHTML = `
       <div class="kb-tt-row">
         <span class="kb-tt-id">${ds.tooltipId || ""}</span>
@@ -250,7 +274,8 @@ export default class extends Controller {
         <span class="lbl">Priority</span><span class="val">${this._esc(ds.tooltipPriority || "Medium")}</span>
         <span class="lbl">Jira status</span><span class="val">${this._esc(ds.tooltipStatusRaw || "—")}</span>
       </div>
-      <div class="kb-tt-hint">Click to open · ↗ Jira</div>
+      ${prsHtml}
+      <div class="kb-tt-hint">Click card to open in Jira ↗</div>
     `
     this._ttAnchor = card
     this.tooltipTarget.hidden = false
