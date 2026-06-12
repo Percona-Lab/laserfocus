@@ -78,5 +78,4 @@ class BoardLiveUpdateTest < ApplicationSystemTestCase
 
     assert_no_selector %(.kb-col[data-epic-key="PG-1"])
   end
-
 end

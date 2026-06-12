@@ -73,5 +73,4 @@ class StackCollapseTest < ApplicationSystemTestCase
       assert_selector "[data-tooltip-id='PG-11']"
     end
   end
-
 end

@@ -30,6 +30,12 @@ services:
   chromium:
     image: selenium/standalone-chromium:latest
     shm_size: "2gb"
+    environment:
+      # System tests open a second browser via Capybara.using_session; the
+      # standalone image allows only one session by default, so the second one
+      # queues forever and the WebDriver command read-times-out.
+      SE_NODE_MAX_SESSIONS: "2"
+      SE_NODE_OVERRIDE_MAX_SESSIONS: "true"
     ports:
       - "4444:4444"
 
