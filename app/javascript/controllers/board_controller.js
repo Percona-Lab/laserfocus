@@ -34,6 +34,9 @@ export default class extends Controller {
       }, 0)
     })
     this._colObserver.observe(this.rootTarget, { childList: true })
+    this._localizesyncTimestamp()
+    this._onTurboRender = () => setTimeout(() => this._localizesyncTimestamp(), 0)
+    document.addEventListener("turbo:before-stream-render", this._onTurboRender)
     if (this.hasTooltipTarget) {
       this._ttEnter = () => clearTimeout(this._ttHideTimer)
       this._ttLeave = () => { this._ttHideTimer = setTimeout(() => this._doHide(), 80) }
@@ -47,6 +50,7 @@ export default class extends Controller {
     window.removeEventListener("resize", this._onWinResize)
     this._teardownColumnDrag()
     if (this._colObserver) this._colObserver.disconnect()
+    if (this._onTurboRender) document.removeEventListener("turbo:before-stream-render", this._onTurboRender)
     if (this.hasTooltipTarget && this._ttEnter) {
       this.tooltipTarget.removeEventListener("mouseenter", this._ttEnter)
       this.tooltipTarget.removeEventListener("mouseleave", this._ttLeave)
@@ -108,6 +112,15 @@ export default class extends Controller {
     this.persist()
     this.syncGhostEpicUI()
     this.apply()
+  }
+
+  _localizesyncTimestamp() {
+    const el = document.getElementById("kb-sync-status")
+    if (!el || !el.dataset.syncTs) return
+    const local = new Date(el.dataset.syncTs).toLocaleString(undefined, {
+      month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+    })
+    el.title = el.title.replace(el.dataset.syncTs, local)
   }
 
   syncGhostEpicUI() {
