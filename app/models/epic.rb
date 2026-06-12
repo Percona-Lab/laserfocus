@@ -2,7 +2,7 @@ class Epic < ApplicationRecord
   has_many :issues, dependent: :destroy
 
   scope :active,  -> { where(removed_at: nil) }
-  scope :ordered, -> { order(priority: :asc, name: :asc) }
+  scope :ordered, -> { order(created_at: :asc, id: :asc) }
 
   def assignee_name
     assignee = (raw_fields || {})["assignee"]

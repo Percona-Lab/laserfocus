@@ -14,26 +14,11 @@ export default class extends Controller {
   }
 
   connect() {
-    this.loadFromHash()
-    this.syncStatusUI()
-    this.syncActivityUI()
-    this.syncGhostEpicUI()
-    if (this.hasSearchTarget) this.searchTarget.value = this.queryValue
-    this.apply()
+    this._hydrate()
     this._onWinResize = () => this._positionTooltip()
     window.addEventListener("scroll", this._onWinResize, true)
     window.addEventListener("resize", this._onWinResize)
     this._setupColumnDrag()
-    this._restoreColOrder()
-    this._colObserver = new MutationObserver(() => {
-      clearTimeout(this._morphTimer)
-      this._morphTimer = setTimeout(() => {
-        this._colObserver.disconnect()
-        this._restoreColOrder()
-        this._colObserver.observe(this.rootTarget, { childList: true })
-      }, 0)
-    })
-    this._colObserver.observe(this.rootTarget, { childList: true })
     this._localizesyncTimestamp()
     this._onTurboRender = () => setTimeout(() => this._localizesyncTimestamp(), 0)
     document.addEventListener("turbo:before-stream-render", this._onTurboRender)
@@ -43,18 +28,20 @@ export default class extends Controller {
       this.tooltipTarget.addEventListener("mouseenter", this._ttEnter)
       this.tooltipTarget.addEventListener("mouseleave", this._ttLeave)
     }
+    this._onMorphRestore = () => this._hydrate()
+    document.addEventListener("turbo:morph", this._onMorphRestore)
   }
 
   disconnect() {
     window.removeEventListener("scroll", this._onWinResize, true)
     window.removeEventListener("resize", this._onWinResize)
     this._teardownColumnDrag()
-    if (this._colObserver) this._colObserver.disconnect()
     if (this._onTurboRender) document.removeEventListener("turbo:before-stream-render", this._onTurboRender)
     if (this.hasTooltipTarget && this._ttEnter) {
       this.tooltipTarget.removeEventListener("mouseenter", this._ttEnter)
       this.tooltipTarget.removeEventListener("mouseleave", this._ttLeave)
     }
+    document.removeEventListener("turbo:morph", this._onMorphRestore)
   }
 
   // ---------- search ----------
@@ -317,6 +304,16 @@ export default class extends Controller {
     }[c]))
   }
 
+  // ---------- private helpers ----------
+  _hydrate() {
+    this.loadFromHash()
+    this.syncStatusUI()
+    this.syncActivityUI()
+    this.syncGhostEpicUI()
+    if (this.hasSearchTarget) this.searchTarget.value = this.queryValue
+    this.apply()
+  }
+
   // ---------- column drag-and-drop ----------
   _setupColumnDrag() {
     const root = this.rootTarget
@@ -391,22 +388,14 @@ export default class extends Controller {
 
   _saveColOrder() {
     const order = [...this.rootTarget.querySelectorAll(":scope > .kb-col")].map(c => c.dataset.epicKey)
-    localStorage.setItem("kb-col-order", JSON.stringify(order))
-  }
-
-  _restoreColOrder() {
-    try {
-      const saved = JSON.parse(localStorage.getItem("kb-col-order") || "null")
-      if (!saved || !Array.isArray(saved) || saved.length === 0) return
-      const root = this.rootTarget
-      const cols = [...root.querySelectorAll(":scope > .kb-col")]
-      const byKey = Object.fromEntries(cols.map(c => [c.dataset.epicKey, c]))
-      const seen = new Set()
-      saved.forEach(key => {
-        if (byKey[key]) { root.appendChild(byKey[key]); seen.add(key) }
-      })
-      cols.forEach(c => { if (!seen.has(c.dataset.epicKey)) root.appendChild(c) })
-    } catch {}
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+    fetch("/column_order", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
+      body: JSON.stringify({ order })
+    })
+      .then(res => { if (!res.ok) console.error("Failed to save column order", res.status) })
+      .catch(e => console.error("Failed to save column order", e))
   }
 
   // ---------- persistence ----------

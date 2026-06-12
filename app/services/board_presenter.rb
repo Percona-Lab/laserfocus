@@ -26,6 +26,8 @@ class BoardPresenter
       new_issues + middle_groups.values.flatten + done_issues
     end
 
+    def merged_middle? = middle_groups.key?(BoardPresenter::MERGED_GROUP)
+
     def issue_rows_for(postits)
       issue_keys = Set.new(postits.map(&:jira_key))
       children_by_parent = Hash.new { |h, k| h[k] = [] }
@@ -51,10 +53,35 @@ class BoardPresenter
   end
 
   UNPLANNED_EPIC = Struct.new(:jira_key, :name).new("UNPLANNED", "Unplanned Work")
+  GROUP_MODES = %w[staleness definition merged].freeze
+  DEFAULT_GROUP_MODE = "staleness".freeze
+  MERGED_GROUP = "merged".freeze
 
-  def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:, orphan_issues: [])
+  def self.build(config: LASER_FOCUS_CONFIG.board, group_mode: :staleness)
+    new(
+      epics: Epic.active.ordered.includes(:issues),
+      orphan_issues: Issue.active.orphan,
+      column_order: BoardOrder.instance.column_order,
+      group_mode: group_mode,
+      status_map: config.status_map,
+      new_statuses: config.new_statuses,
+      done_statuses: config.done_statuses,
+      staleness: StalenessCalculator.new(
+        now: Time.current,
+        somewhat_days: config.staleness.somewhat_days,
+        really_days: config.staleness.really_days,
+        ignore_for_new: config.ignore_staleness_for_new_issues,
+        new_display_statuses: config.new_statuses,
+        done_display_statuses: config.done_statuses
+      )
+    )
+  end
+
+  def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:, orphan_issues: [], column_order: [], group_mode: :staleness)
     @epics = epics
     @orphan_issues = orphan_issues
+    @column_order = column_order
+    @group_mode = group_mode.to_sym
     @status_map = status_map
     @new_statuses = new_statuses
     @done_statuses = done_statuses
@@ -66,8 +93,8 @@ class BoardPresenter
     @columns ||= begin
       cols = @epics.map { |e| build_column(e, e.issues.reject { |i| i.removed_at }) }
       orphans = @orphan_issues.reject { |i| i.removed_at }
-      cols.unshift(build_column(UNPLANNED_EPIC, orphans)) if orphans.any?
-      cols
+      cols << build_column(UNPLANNED_EPIC, orphans) if orphans.any?
+      sort_columns(cols)
     end
   end
 
@@ -82,6 +109,14 @@ class BoardPresenter
 
   private
 
+  def sort_columns(cols)
+    index = {}
+    @column_order.each_with_index { |key, i| index[key] = i }
+    listed, missing = cols.partition { |c| index.key?(c.epic.jira_key) }
+    unplanned, fresh = missing.partition { |c| c.epic.jira_key == UNPLANNED_EPIC.jira_key }
+    unplanned + listed.sort_by { |c| index[c.epic.jira_key] } + fresh
+  end
+
   def build_column(epic, issues)
     presented = issues.map { |i| present(i) }
     sorted = presented.sort_by { |p| p.transitioned_at || Time.at(0) }
@@ -89,9 +124,27 @@ class BoardPresenter
     new_group  = sorted.select { |p| @new_statuses.include?(p.display_status) }
     done_group = sorted.select { |p| @done_statuses.include?(p.display_status) }
     middle     = sorted - new_group - done_group
-    middle_groups = middle.group_by(&:display_status)
+    middle_groups = group_middle(middle)
 
     Column.new(epic, new_group, middle_groups, done_group)
+  end
+
+  def group_middle(middle)
+    case @group_mode
+    when :merged
+      middle.empty? ? {} : { MERGED_GROUP => middle }
+    when :definition
+      middle.group_by(&:display_status)
+            # index tiebreak: sort_by is not stability-guaranteed
+            .sort_by.with_index { |(status, _), i| [ definition_order.fetch(status, definition_order.size), i ] }
+            .to_h
+    else
+      middle.group_by(&:display_status)
+    end
+  end
+
+  def definition_order
+    @definition_order ||= configured_display_statuses.each_with_index.to_h
   end
 
   def present(issue)

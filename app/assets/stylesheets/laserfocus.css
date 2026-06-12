@@ -110,6 +110,7 @@ html, body { background: var(--kb-bg); font-family: var(--kb-ui); color: var(--k
 .kb-act-pill:hover { background: var(--kb-input-hover); }
 .kb-act-pill[data-on="1"] { background: #1e293b; color: #fff; }
 [data-theme="dark"] .kb-act-pill[data-on="1"] { background: #e2e8f0; color: #0f172a; }
+.kb-group-mode { display: flex; gap: 4px; align-items: center; }
 .kb-activity-sep {
   width: 1px; align-self: stretch;
   background: var(--kb-border-strong);

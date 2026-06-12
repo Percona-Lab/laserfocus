@@ -59,7 +59,7 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
           - todo_rows.each do |row|
             = render "board/postit", p: row.postit, nested: row.depth > 0
 
-    - if middle_count > 0 && todo_count > 0
+    - if middle_count > 0 && todo_count > 0 && !column.merged_middle?
       .kb-divider data-stack-target="middleDivider" hidden=true
         span.kb-divider-text style="color:#94a3b8;"
           | IN PROGRESS
@@ -68,7 +68,7 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
     - column.middle_groups.each do |display_status, postits|
       - rows = middle_rows[display_status]
       - next if rows.empty?
-      - st = state_meta(display_status)
+      - st = middle_group_meta(display_status)
       .kb-stack-wrap
         .kb-stack-shadow data-stack-target="middleShadow" data-status=display_status hidden=true
         button.kb-stack-btn type="button" style="--kb-stack-color:#{st[:color]};" data-stack-target="middleBtn" data-status=display_status data-action="stack#toggleMiddle" data-open="1"

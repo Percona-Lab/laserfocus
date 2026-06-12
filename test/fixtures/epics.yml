@@ -3,12 +3,14 @@ priority_one:
   name: "First Priority"
   priority: 1
   jira_status: "In Progress"
+  created_at: <%= 3.days.ago.iso8601 %>
 
 priority_two:
   jira_key: "PG-2"
   name: "Second Priority"
   priority: 2
   jira_status: "In Progress"
+  created_at: <%= 2.days.ago.iso8601 %>
 
 removed_one:
   jira_key: "PG-9"
@@ -16,3 +18,4 @@ removed_one:
   priority: 99
   jira_status: "Done"
   removed_at: <%= Time.current.iso8601 %>
+  created_at: <%= 1.day.ago.iso8601 %>

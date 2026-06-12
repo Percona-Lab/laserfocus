@@ -20,7 +20,7 @@
         - s = state_meta(id)
         button.kb-pill type="button" data-board-target="statusPill" data-action="board#toggleStatus" data-state=s[:id] data-color=s[:color] data-on="0" style="--kb-state-color:#{s[:color]};" title="Highlight #{s[:label]}"
           span.kb-pill-dot style="background:#{s[:color]};"
-          span= s[:short]
+          span= s[:label]
       button.kb-pill-clear type="button" data-board-target="statusClear" data-action="board#clearStatuses" hidden=true
         | ✕ clear
 
@@ -40,6 +40,11 @@
       span.kb-counts
         | #{total_tickets} tickets ·
         span.stale= "#{total_stale} stale"
+
+      .kb-group-mode role="group" aria-label="Column grouping" data-controller="group-mode"
+        - group_mode_options.each do |mode, opt|
+          button.kb-act-pill type="button" data-action="group-mode#choose" data-mode=mode data-on=(@group_mode == mode ? "1" : "0") title=opt[:hint]
+            = opt[:label]
 
       .kb-search-wrap
         svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#94a3b8" stroke-width="1.6" aria-hidden="true"

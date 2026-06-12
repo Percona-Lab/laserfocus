@@ -11,12 +11,11 @@ class EpicTest < ActiveSupport::TestCase
     assert_not_includes Epic.active, removed
   end
 
-  test "ordered scope sorts by priority asc, name asc" do
+  test "ordered scope sorts by creation order, ignoring priority" do
     Issue.delete_all
     Epic.delete_all
-    c = Epic.create!(jira_key: "PG-3", name: "Charlie", priority: 2, jira_status: "To Do")
-    a = Epic.create!(jira_key: "PG-1", name: "Alpha",   priority: 1, jira_status: "To Do")
-    b = Epic.create!(jira_key: "PG-2", name: "Bravo",   priority: 1, jira_status: "To Do")
-    assert_equal [ a, b, c ], Epic.ordered.to_a
+    old_low  = Epic.create!(jira_key: "PG-3", name: "Charlie", priority: 9, jira_status: "To Do", created_at: 3.days.ago)
+    new_high = Epic.create!(jira_key: "PG-1", name: "Alpha",   priority: 1, jira_status: "To Do", created_at: 1.day.ago)
+    assert_equal [ old_low, new_high ], Epic.ordered.to_a
   end
 end

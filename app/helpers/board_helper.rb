@@ -1,12 +1,10 @@
 module BoardHelper
-  DISPLAY_STATES = [
-    { id: "new",         label: "To Do",       short: "To Do",  color: "#94a3b8", tint: "#f1f5f9", deep: "#475569" },
-    { id: "in_progress", label: "In Progress", short: "Impl",   color: "#3b82f6", tint: "#eff6ff", deep: "#1d4ed8" },
-    { id: "review",      label: "In Review",   short: "Review", color: "#8b5cf6", tint: "#f5f3ff", deep: "#6d28d9" },
-    { id: "done",        label: "Done",        short: "Done",   color: "#22c55e", tint: "#f0fdf4", deep: "#15803d" }
-  ].freeze
-
-  STATE_BY_ID = DISPLAY_STATES.index_by { |s| s[:id] }.freeze
+  STATE_COLORS = {
+    "new"         => { color: "#94a3b8", tint: "#f1f5f9", deep: "#475569" },
+    "in_progress" => { color: "#3b82f6", tint: "#eff6ff", deep: "#1d4ed8" },
+    "review"      => { color: "#8b5cf6", tint: "#f5f3ff", deep: "#6d28d9" },
+    "done"        => { color: "#22c55e", tint: "#f0fdf4", deep: "#15803d" }
+  }.freeze
 
   STATE_FALLBACK_PALETTE = [
     { color: "#ef4444", tint: "#fef2f2", deep: "#b91c1c" },
@@ -44,12 +42,28 @@ module BoardHelper
 
   AVATAR_PALETTE = %w[#6366f1 #0d9488 #e11d48 #ea580c #8b5cf6 #0284c7 #16a34a #b45309 #c026d3 #475569].freeze
 
+  GROUP_MODE_OPTIONS = {
+    "staleness"  => { label: "Staleness",    hint: "Status groups ordered by most stale ticket" },
+    "definition" => { label: "Status order", hint: "Status groups in configured (navbar) order" },
+    "merged"     => { label: "Unified",      hint: "One In Progress section, most stale first" }
+  }.freeze
+
+  def group_mode_options
+    BoardPresenter::GROUP_MODES.map { |mode| [ mode, GROUP_MODE_OPTIONS.fetch(mode) ] }
+  end
+
   def state_meta(display_status)
-    STATE_BY_ID[display_status] || begin
-      id = display_status.to_s
-      swatch = BoardHelper.fallback_swatch_for(id)
-      label = id.titleize
-      { id: id, label: label, short: label, **swatch }
+    id = display_status.to_s
+    swatch = STATE_COLORS[id] || BoardHelper.fallback_swatch_for(id)
+    { id: id, label: id.titleize, **swatch }
+  end
+
+  def middle_group_meta(display_status)
+    if display_status == BoardPresenter::MERGED_GROUP
+      { id: BoardPresenter::MERGED_GROUP, label: "In Progress",
+        color: "#94a3b8", tint: "#f1f5f9", deep: "#475569" }
+    else
+      state_meta(display_status)
     end
   end
 
@@ -67,7 +81,7 @@ module BoardHelper
       end
     if @swatch_table_key != cfg_values
       @swatch_table_key = cfg_values
-      known = STATE_BY_ID.keys
+      known = STATE_COLORS.keys
       @swatch_table = (cfg_values - known).each_with_index.to_h do |sid, i|
         [ sid, STATE_FALLBACK_PALETTE[i % STATE_FALLBACK_PALETTE.size] ]
       end
@@ -176,7 +190,7 @@ module BoardHelper
       if defined?(LASER_FOCUS_CONFIG) && LASER_FOCUS_CONFIG.board.status_map
         LASER_FOCUS_CONFIG.board.status_map.values.uniq
       else
-        DISPLAY_STATES.map { |s| s[:id] }
+        STATE_COLORS.keys
       end
     configured.map { |id| state_meta(id) }
   end

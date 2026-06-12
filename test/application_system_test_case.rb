@@ -3,6 +3,10 @@ require "capybara/rails"
 require "selenium/webdriver"
 
 class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
+  def broadcast_board
+    BoardBroadcasts.board
+  end
+
   if ENV["SELENIUM_REMOTE_URL"].present?
     driven_by :selenium,
               using: :headless_chrome,

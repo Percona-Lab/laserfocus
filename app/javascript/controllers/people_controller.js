@@ -8,7 +8,18 @@ export default class extends Controller {
 
   connect() {
     this._board = this._findBoard()
+    // board's morph listener registers first (ancestor), so assigneesValue is already re-read from the hash
+    this._onMorphRestore = () => {
+      if (!this._board) this._board = this._findBoard()
+      if (this._board) this.selectedValue = this._board.assigneesValue
+      this.syncUI()
+    }
+    document.addEventListener("turbo:morph", this._onMorphRestore)
     this.syncUI()
+  }
+
+  disconnect() {
+    document.removeEventListener("turbo:morph", this._onMorphRestore)
   }
 
   toggle(event) {

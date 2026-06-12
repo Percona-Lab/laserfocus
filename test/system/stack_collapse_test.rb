@@ -59,7 +59,14 @@ class StackCollapseTest < ApplicationSystemTestCase
       assert_no_selector "[data-tooltip-id='PG-10']"
     end
 
+    Issue.create!(
+      jira_key: "PG-78", epic: epics(:priority_two), summary: "Broadcast marker",
+      jira_status: "In Progress", issue_type: "Task",
+      created_at_jira: Time.current, status_changed_at_jira: Time.current
+    )
     broadcast_board
+
+    assert_selector "[data-tooltip-id='PG-78']", visible: :all
 
     within ".kb-col[data-epic-key='PG-1']" do
       assert_no_selector "[data-tooltip-id='PG-10']"
@@ -67,31 +74,4 @@ class StackCollapseTest < ApplicationSystemTestCase
     end
   end
 
-  private
-
-  def broadcast_board
-    Turbo::StreamsChannel.broadcast_render_to(
-      "board",
-      partial: "board/board_morph",
-      locals: { presenter: build_presenter, last_sync: SyncRun.ok.most_recent.first }
-    )
-  end
-
-  def build_presenter
-    BoardPresenter.new(
-      epics: Epic.active.ordered.includes(:issues),
-      orphan_issues: Issue.active.orphan,
-      status_map: LASER_FOCUS_CONFIG.board.status_map,
-      new_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
-      done_statuses: LASER_FOCUS_CONFIG.board.done_statuses,
-      staleness: StalenessCalculator.new(
-        now: Time.current,
-        somewhat_days: LASER_FOCUS_CONFIG.board.staleness.somewhat_days,
-        really_days: LASER_FOCUS_CONFIG.board.staleness.really_days,
-        ignore_for_new: LASER_FOCUS_CONFIG.board.ignore_staleness_for_new_issues,
-        new_display_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
-        done_display_statuses: LASER_FOCUS_CONFIG.board.done_statuses
-      )
-    )
-  end
 end

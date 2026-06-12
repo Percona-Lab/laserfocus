@@ -79,31 +79,4 @@ class BoardLiveUpdateTest < ApplicationSystemTestCase
     assert_no_selector %(.kb-col[data-epic-key="PG-1"])
   end
 
-  private
-
-  def broadcast_board
-    Turbo::StreamsChannel.broadcast_render_to(
-      "board",
-      partial: "board/board_morph",
-      locals: { presenter: build_presenter, last_sync: SyncRun.ok.most_recent.first }
-    )
-  end
-
-  def build_presenter
-    BoardPresenter.new(
-      epics: Epic.active.ordered.includes(:issues),
-      orphan_issues: Issue.active.orphan,
-      status_map: LASER_FOCUS_CONFIG.board.status_map,
-      new_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
-      done_statuses: LASER_FOCUS_CONFIG.board.done_statuses,
-      staleness: StalenessCalculator.new(
-        now: Time.current,
-        somewhat_days: LASER_FOCUS_CONFIG.board.staleness.somewhat_days,
-        really_days: LASER_FOCUS_CONFIG.board.staleness.really_days,
-        ignore_for_new: LASER_FOCUS_CONFIG.board.ignore_staleness_for_new_issues,
-        new_display_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
-        done_display_statuses: LASER_FOCUS_CONFIG.board.done_statuses
-      )
-    )
-  end
 end
