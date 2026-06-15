@@ -101,6 +101,13 @@ export default class extends Controller {
     this.apply()
   }
 
+  startSync(event) {
+    const el = event.currentTarget
+    el.dataset.syncing = "1"
+    const label = el.querySelector(".kb-sync-label")
+    if (label) label.textContent = "syncing..."
+  }
+
   _localizesyncTimestamp() {
     const el = document.getElementById("kb-sync-status")
     if (!el || !el.dataset.syncTs) return

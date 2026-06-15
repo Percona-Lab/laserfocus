@@ -1,15 +1,15 @@
 - if last_sync.nil?
-  a.kb-sync#kb-sync-status href="/sync" data-turbo-method="post" title="No sync yet — click to sync"
+  a.kb-sync#kb-sync-status href="/sync" data-turbo-method="post" data-action="click->board#startSync" title="No sync yet — click to sync"
     span.dot.dot-amber
-    | Sync now
+    span.kb-sync-label Sync now
 - else
   - age_min = ((Time.current - last_sync.finished_at) / 60).to_i
   - level = age_min > 30 ? :red : age_min > 5 ? :amber : :green
-  a.kb-sync#kb-sync-status href="/sync" data-turbo-method="post" data-sync-ts="#{last_sync.finished_at.iso8601}" title="Last sync: #{last_sync.finished_at.iso8601} (#{age_min}m ago) — click to sync"
+  a.kb-sync#kb-sync-status href="/sync" data-turbo-method="post" data-action="click->board#startSync" data-sync-ts="#{last_sync.finished_at.iso8601}" title="Last sync: #{last_sync.finished_at.iso8601} (#{age_min}m ago) — click to sync"
     span class="dot dot-#{level}"
     - if level == :red
-      | JIRA sync stalled (#{age_min}m)
+      span.kb-sync-label JIRA sync stalled (#{age_min}m)
     - elsif level == :amber
-      | #{age_min}m ago
+      span.kb-sync-label #{age_min}m ago
     - else
-      | synced
+      span.kb-sync-label synced

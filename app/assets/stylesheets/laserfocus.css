@@ -169,6 +169,11 @@ html, body { background: var(--kb-bg); font-family: var(--kb-ui); color: var(--k
 .kb-sync .dot-green { background: #22c55e; }
 .kb-sync .dot-amber { background: #eab308; }
 .kb-sync .dot-red   { background: #ef4444; }
+@keyframes kb-spin { to { transform: rotate(360deg); } }
+.kb-sync[data-syncing="1"] { pointer-events: none; opacity: 0.6; }
+.kb-sync[data-syncing="1"] .dot { background: none; border: 1.5px solid transparent; border-top-color: #22c55e; animation: kb-spin 0.7s linear infinite; }
+.kb-sync[data-syncing="1"] .dot-amber { border-top-color: #eab308; }
+.kb-sync[data-syncing="1"] .dot-red   { border-top-color: #ef4444; }
 .kb-user { font-size: 12px; color: var(--kb-text-soft); }
 .kb-logout-btn {
   border: 1px solid var(--kb-border-strong); background: var(--kb-input-bg);
