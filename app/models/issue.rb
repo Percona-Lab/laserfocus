@@ -9,6 +9,12 @@ class Issue < ApplicationRecord
     val.is_a?(Array) ? val.select { |p| p.is_a?(Hash) } : []
   end
 
+  def description
+    raw = (raw_fields || {})["description"]
+    return nil if raw.blank?
+    raw.is_a?(String) ? raw.strip.presence : adf_to_text(raw)
+  end
+
   def parent_jira_key
     fields = raw_fields || {}
     parent = fields["parent"] || fields[:parent]
@@ -30,6 +36,29 @@ class Issue < ApplicationRecord
       else
         component.to_s.presence
       end
+    end
+  end
+
+  private
+
+  def adf_to_text(node)
+    return "" unless node.is_a?(Hash)
+    paragraphs = []
+    collect_adf_paragraphs(node, paragraphs)
+    paragraphs.reject(&:empty?).join("\n\n").strip.presence
+  end
+
+  def collect_adf_paragraphs(node, paragraphs)
+    type = node["type"]
+    children = Array(node["content"])
+
+    if %w[paragraph heading].include?(type)
+      text = children.filter_map { |c| c["text"] if c["type"] == "text" }.join
+      paragraphs << text
+    elsif type == "text"
+      paragraphs << node["text"].to_s
+    else
+      children.each { |c| collect_adf_paragraphs(c, paragraphs) }
     end
   end
 end

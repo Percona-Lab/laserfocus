@@ -419,7 +419,16 @@ a.kb-col-name:hover { text-decoration: underline; }
   margin-left: auto; display: inline-flex; align-items: center;
   font: 700 10.5px var(--kb-ui); color: #fff; border-radius: 5px; padding: 2px 7px;
 }
-.kb-tt-title { font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+.kb-tt-title { font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
+.kb-tt-desc {
+  font-size: 11.5px; line-height: 1.5; color: #9aa3b0;
+  margin-bottom: 8px; word-break: break-word;
+}
+.kb-tt-desc-toggle {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: #60a5fa; font: 600 11px var(--kb-ui); white-space: nowrap;
+}
+.kb-tt-desc-toggle:hover { color: #93c5fd; }
 .kb-tt-grid {
   display: grid; grid-template-columns: auto 1fr; row-gap: 6px; column-gap: 12px;
   border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; font-size: 11.5px;

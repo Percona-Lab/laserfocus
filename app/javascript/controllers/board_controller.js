@@ -27,6 +27,20 @@ export default class extends Controller {
       this._ttLeave = () => { this._ttHideTimer = setTimeout(() => this._doHide(), 80) }
       this.tooltipTarget.addEventListener("mouseenter", this._ttEnter)
       this.tooltipTarget.addEventListener("mouseleave", this._ttLeave)
+      this._ttDescToggle = (e) => {
+        const btn = e.target.closest(".kb-tt-desc-toggle")
+        if (!btn) return
+        const desc = btn.closest(".kb-tt-desc")
+        const full = desc.querySelector(".kb-tt-desc-full")
+        const preview = desc.querySelector(".kb-tt-desc-text")
+        const ellipsis = desc.querySelector(".kb-tt-desc-ellipsis")
+        const expanding = full.hidden
+        full.hidden = !expanding
+        preview.hidden = expanding
+        if (ellipsis) ellipsis.hidden = expanding
+        this._positionTooltip()
+      }
+      this.tooltipTarget.addEventListener("click", this._ttDescToggle)
     }
     this._onMorphRestore = () => this._hydrate()
     document.addEventListener("turbo:morph", this._onMorphRestore)
@@ -40,6 +54,7 @@ export default class extends Controller {
     if (this.hasTooltipTarget && this._ttEnter) {
       this.tooltipTarget.removeEventListener("mouseenter", this._ttEnter)
       this.tooltipTarget.removeEventListener("mouseleave", this._ttLeave)
+      this.tooltipTarget.removeEventListener("click", this._ttDescToggle)
     }
     document.removeEventListener("turbo:morph", this._onMorphRestore)
   }
@@ -320,12 +335,14 @@ export default class extends Controller {
             <span class="kb-tt-pr-title">${this._esc(pr.title || pr.url)}</span>
           </a>`).join("")}</div>`
       : ""
+    const descHtml = this._descriptionHtml(ds.tooltipDescription)
     this.tooltipTarget.innerHTML = `
       <div class="kb-tt-row">
         <span class="kb-tt-id">${ds.tooltipId || ""}</span>
         <span class="kb-tt-state-pill" style="background:${stateColor}">${ds.tooltipState || ""}</span>
       </div>
       <div class="kb-tt-title">${this._esc(ds.tooltipTitle || "")}</div>
+      ${descHtml}
       <div class="kb-tt-grid">
         <span class="lbl">Type</span><span class="val">${this._esc(ds.tooltipType || "—")}</span>
         ${parentRow}
@@ -342,6 +359,20 @@ export default class extends Controller {
     this._ttAnchor = card
     this.tooltipTarget.hidden = false
     this._positionTooltip()
+  }
+
+  _descriptionHtml(text) {
+    if (!text) return ""
+    const LIMIT = 180
+    const escaped = this._esc(text)
+    if (text.length <= LIMIT) {
+      return `<div class="kb-tt-desc">${escaped}</div>`
+    }
+    const preview = this._esc(text.slice(0, text.lastIndexOf(" ", LIMIT) || LIMIT))
+    return `<div class="kb-tt-desc">
+      <span class="kb-tt-desc-text">${preview}</span><span class="kb-tt-desc-ellipsis">… </span><button class="kb-tt-desc-toggle" type="button">Show more</button>
+      <span class="kb-tt-desc-full" hidden>${escaped} <button class="kb-tt-desc-toggle" type="button">Show less</button></span>
+    </div>`
   }
 
   _positionTooltip() {
