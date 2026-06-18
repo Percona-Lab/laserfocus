@@ -361,17 +361,20 @@ export default class extends Controller {
     this._positionTooltip()
   }
 
-  _descriptionHtml(text) {
-    if (!text) return ""
+  _descriptionHtml(html) {
+    if (!html) return ""
     const LIMIT = 180
-    const escaped = this._esc(text)
-    if (text.length <= LIMIT) {
-      return `<div class="kb-tt-desc">${escaped}</div>`
+    const tmp = document.createElement("div")
+    tmp.innerHTML = html
+    const plain = tmp.textContent || tmp.innerText || ""
+    if (plain.length <= LIMIT) {
+      return `<div class="kb-tt-desc">${html}</div>`
     }
-    const preview = this._esc(text.slice(0, text.lastIndexOf(" ", LIMIT) || LIMIT))
+    const cut = plain.lastIndexOf(" ", LIMIT) || LIMIT
+    const preview = this._esc(plain.slice(0, cut))
     return `<div class="kb-tt-desc">
       <span class="kb-tt-desc-text">${preview}</span><span class="kb-tt-desc-ellipsis">… </span><button class="kb-tt-desc-toggle" type="button">Show more</button>
-      <span class="kb-tt-desc-full" hidden>${escaped} <button class="kb-tt-desc-toggle" type="button">Show less</button></span>
+      <span class="kb-tt-desc-full" hidden>${html} <button class="kb-tt-desc-toggle" type="button">Show less</button></span>
     </div>`
   }
 
