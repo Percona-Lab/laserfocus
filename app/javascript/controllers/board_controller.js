@@ -4,7 +4,7 @@ import { Controller } from "@hotwired/stimulus"
 // people-filter (set from the people controller), and hover tooltip.
 // Each card has data-search/data-assignee/data-display-status driving the match.
 export default class extends Controller {
-  static targets = ["statusPill", "statusClear", "activityPill", "activityClear", "ghostEpicBtn", "search", "root", "tooltip"]
+  static targets = ["statusPill", "statusClear", "activityPill", "activityClear", "ghostEpicBtn", "search", "root", "tooltip", "statusFilterBtn", "activityFilterBtn"]
   static values = {
     statuses: Array,
     assignees: Array,
@@ -73,17 +73,30 @@ export default class extends Controller {
   // ---------- activity pills ----------
   toggleActivity(event) {
     const el = event.currentTarget
-    const dir = el.dataset.dir
-    const days = parseInt(el.dataset.days, 10)
+    const elDir = el.dataset.dir || null
+    const elDays = el.dataset.days ? parseInt(el.dataset.days, 10) : null
     const cur = this.activityValue || {}
-    if (cur.dir === dir && cur.days === days) {
-      this.activityValue = {}
-    } else {
-      this.activityValue = { dir, days }
+
+    if (elDir && elDays) {
+      // legacy combined button
+      this.activityValue = (cur.dir === elDir && cur.days === elDays) ? {} : { dir: elDir, days: elDays }
+    } else if (elDir) {
+      // direction-only: keep current days or pick first available
+      const days = cur.days || this._firstActivityDays()
+      this.activityValue = { dir: elDir, days }
+    } else if (elDays) {
+      // days-only: keep current direction or default to "newer"
+      this.activityValue = { dir: cur.dir || "newer", days: elDays }
     }
+
     this.persist()
     this.syncActivityUI()
     this.apply()
+  }
+
+  _firstActivityDays() {
+    const pill = this.activityPillTargets.find((p) => p.dataset.days)
+    return pill ? parseInt(pill.dataset.days, 10) : 7
   }
 
   clearActivity() {
@@ -127,9 +140,33 @@ export default class extends Controller {
     const act = this.activityValue || {}
     const on = !!(act.dir && act.days)
     this.activityPillTargets.forEach((el) => {
-      const match = on && el.dataset.dir === act.dir && parseInt(el.dataset.days, 10) === act.days
+      const elDir = el.dataset.dir || null
+      const elDays = el.dataset.days ? parseInt(el.dataset.days, 10) : null
+      let match
+      if (elDir && elDays) {
+        match = on && elDir === act.dir && elDays === act.days
+      } else if (elDir) {
+        match = !!act.dir && elDir === act.dir
+      } else if (elDays) {
+        match = !!act.days && elDays === act.days
+      } else {
+        match = false
+      }
       el.dataset.on = match ? "1" : "0"
     })
+    if (this.hasActivityFilterBtnTarget) {
+      const btn = this.activityFilterBtnTarget
+      btn.dataset.on = on ? "1" : "0"
+      const badge = btn.querySelector(".kb-filter-badge")
+      if (badge) {
+        if (on) {
+          badge.textContent = `${act.dir === "newer" ? "≤" : "≥"}${act.days}d`
+          badge.hidden = false
+        } else {
+          badge.hidden = true
+        }
+      }
+    }
     if (this.hasActivityClearTarget) this.activityClearTarget.hidden = !on
   }
 
@@ -141,20 +178,38 @@ export default class extends Controller {
       const color = el.dataset.color
       el.dataset.on = on ? "1" : "0"
       el.dataset.muted = (anyOn && !on) ? "1" : "0"
-      if (on) {
-        el.style.background = color
-        el.style.borderColor = color
-        // recolor inner dot to white when active
-        const dot = el.querySelector(".kb-pill-dot")
-        if (dot) dot.style.background = "#fff"
-      } else {
-        el.style.background = ""
-        el.style.borderColor = ""
-        const dot = el.querySelector(".kb-pill-dot")
-        if (dot) dot.style.background = color
+      // legacy inline styles only for old .kb-pill elements (now unused)
+      if (el.classList.contains("kb-pill")) {
+        if (on) {
+          el.style.background = color
+          el.style.borderColor = color
+          const dot = el.querySelector(".kb-pill-dot")
+          if (dot) dot.style.background = "#fff"
+        } else {
+          el.style.background = ""
+          el.style.borderColor = ""
+          const dot = el.querySelector(".kb-pill-dot")
+          if (dot) dot.style.background = color
+        }
       }
     })
+    this._syncStatusFilterBtn()
     if (this.hasStatusClearTarget) this.statusClearTarget.hidden = !anyOn
+  }
+
+  _syncStatusFilterBtn() {
+    if (!this.hasStatusFilterBtnTarget) return
+    const sel = new Set(this.statusesValue)
+    const btn = this.statusFilterBtnTarget
+    btn.dataset.on = sel.size > 0 ? "1" : "0"
+    const dotsEl = btn.querySelector(".kb-filter-dots")
+    if (dotsEl) {
+      dotsEl.innerHTML = [...sel].map((id) => {
+        const pill = this.statusPillTargets.find((p) => p.dataset.state === id)
+        const color = pill?.dataset.color || "#94a3b8"
+        return `<span class="kb-filter-dot-preview" style="background:${color};"></span>`
+      }).join("")
+    }
   }
 
   // ---------- people filter (called by people controller) ----------
