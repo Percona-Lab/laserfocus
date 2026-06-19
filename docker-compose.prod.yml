@@ -13,6 +13,8 @@ services:
     environment:
       RAILS_ENV: production
       SOLID_QUEUE_IN_PUMA: "true"
+    networks:
+      - pg_projects
 
   caddy:
     image: caddy:2
@@ -24,7 +26,13 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - pg_projects
 
 volumes:
   caddy_data:
   caddy_config:
+
+networks:
+  pg_projects:
+    name: pg_projects
