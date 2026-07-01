@@ -89,6 +89,8 @@ module LaserFocus
       def initialize(h) = @h = h
       def epic_query  = @h["epic_query"]
       def unplanned_query = @h["unplanned_query"]
+      def new_unplanned_query = @h["new_unplanned_query"]
+      def new_unplanned_days  = @h.fetch("new_unplanned_days", 10)
       def users       = (@h["users"] || []).map { |u| OpenStruct.new(u) }
       def status_map  = @h["status_map"]
       def new_statuses  = @h["new_statuses"]

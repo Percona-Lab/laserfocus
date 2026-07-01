@@ -40,6 +40,8 @@ module BoardHelper
     really:   { bg: "#fde7e7", fg: "#b91c1c", dot: "#ef4444", border: "#f0a0a0", paper: "#fff0ea" }
   }.freeze
 
+  PROVISIONAL_STYLE = { paper: "#eaf1ff", accent: "#2563eb" }.freeze
+
   AVATAR_PALETTE = %w[#6366f1 #0d9488 #e11d48 #ea580c #8b5cf6 #0284c7 #16a34a #b45309 #c026d3 #475569].freeze
 
   GROUP_MODE_OPTIONS = {
@@ -108,6 +110,10 @@ module BoardHelper
 
   def staleness_meta(bucket)
     STALENESS_STYLE[bucket&.to_sym] || STALENESS_STYLE[:fresh]
+  end
+
+  def provisional_meta
+    PROVISIONAL_STYLE
   end
 
   def staleness_label(bucket)

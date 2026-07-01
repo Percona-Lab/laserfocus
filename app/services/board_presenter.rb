@@ -15,6 +15,7 @@ class BoardPresenter
     def labels          = issue.labels
     def components      = issue.components
     def epic_id          = issue.epic_id
+    def provisional      = issue.provisional
     def pull_requests    = issue.pull_requests
     def description      = issue.description
     def description_html = issue.description_html

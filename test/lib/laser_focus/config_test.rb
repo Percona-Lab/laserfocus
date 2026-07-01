@@ -51,3 +51,34 @@ class LaserFocus::ConfigTest < ActiveSupport::TestCase
     ENV["JIRA_API_TOKEN"] = previous
   end
 end
+
+class LaserFocusConfigTest < ActiveSupport::TestCase
+  BASE = <<~YAML
+    auth: { allowed_domains: ["x.com"] }
+    polling: { tick_seconds: 60, active_window_minutes: 5, idle_interval_minutes: 60 }
+    board:
+      epic_query: "project = PG"
+      users: []
+      status_map: { "To Do": "new" }
+      new_statuses: ["new"]
+      done_statuses: ["done"]
+      staleness: { somewhat_days: 3, really_days: 10 }
+  YAML
+
+  test "reads new_unplanned_query" do
+    yaml = BASE + "  new_unplanned_query: \"project = PG AND created >= -10d\"\n"
+    cfg = LaserFocus::Config.load_from_string(yaml)
+    assert_equal "project = PG AND created >= -10d", cfg.board.new_unplanned_query
+  end
+
+  test "new_unplanned_days defaults to 10" do
+    cfg = LaserFocus::Config.load_from_string(BASE)
+    assert_equal 10, cfg.board.new_unplanned_days
+  end
+
+  test "new_unplanned_days reads configured value" do
+    yaml = BASE + "  new_unplanned_days: 5\n"
+    cfg = LaserFocus::Config.load_from_string(yaml)
+    assert_equal 5, cfg.board.new_unplanned_days
+  end
+end

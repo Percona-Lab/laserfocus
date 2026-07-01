@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_12_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_01_000001) do
   create_table "board_orders", force: :cascade do |t|
     t.json "column_order", default: [], null: false
     t.datetime "created_at", null: false
@@ -48,6 +48,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_12_000001) do
     t.string "jira_status", null: false
     t.datetime "last_seen_in_query_at"
     t.integer "priority"
+    t.boolean "provisional", default: false, null: false
     t.json "pull_requests", default: []
     t.json "raw_fields"
     t.datetime "removed_at"

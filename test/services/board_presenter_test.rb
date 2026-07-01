@@ -202,4 +202,24 @@ class BoardPresenterTest < ActiveSupport::TestCase
     assert_equal [ "PG-12" ], epic1.new_issues.map(&:jira_key)
     assert_equal [ "PG-13" ], epic1.done_issues.map(&:jira_key)
   end
+
+  test "provisional orphan is surfaced in the unplanned new group" do
+    issue = Issue.create!(jira_key: "PG-600", epic: nil, issue_type: "Task",
+                          summary: "New one", jira_status: "To Do", provisional: true)
+
+    presenter = BoardPresenter.new(
+      epics: [], orphan_issues: [ issue ],
+      status_map: { "To Do" => "new" }, new_statuses: [ "new" ], done_statuses: [ "done" ],
+      staleness: StalenessCalculator.new(
+        now: Time.current, somewhat_days: 3, really_days: 10,
+        ignore_for_new: true, new_display_statuses: [ "new" ], done_display_statuses: [ "done" ]
+      )
+    )
+
+    unplanned = presenter.columns.find { |c| c.epic.jira_key == BoardPresenter::UNPLANNED_EPIC.jira_key }
+    assert_not_nil unplanned
+    row = unplanned.new_issues.first
+    assert_equal "PG-600", row.jira_key
+    assert_equal true, row.provisional
+  end
 end

@@ -18,4 +18,8 @@ class BoardHelperTest < ActionView::TestCase
   test "state_meta has no short variant" do
     assert_not state_meta("review").key?(:short)
   end
+
+  test "provisional_meta returns the cool-blue paper and accent" do
+    assert_equal({ paper: "#eaf1ff", accent: "#2563eb" }, provisional_meta)
+  end
 end

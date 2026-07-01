@@ -255,7 +255,7 @@ class JiraSyncTest < ActiveSupport::TestCase
       headers: { "Content-Type" => "application/json" }
     )
 
-    JiraSync.new(epic_query: "project = PG", unplanned_query: nil).run!
+    JiraSync.new(epic_query: "project = PG", unplanned_query: nil, new_unplanned_query: nil).run!
 
     assert_requested(:get, %r{/search}, times: 1)
   end
@@ -279,5 +279,135 @@ class JiraSyncTest < ActiveSupport::TestCase
       assert_nothing_raised { JiraSync.new(epic_query: "project = PG").run! }
     end
     assert_not SyncRun.most_recent.first.ok
+  end
+
+  def jira_time(t) = t.strftime("%Y-%m-%dT%H:%M:%S.000%z")
+
+  test "upserts a fresh new-status candidate as provisional orphan" do
+    created = jira_time(2.days.ago)
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      body = if decoded =~ /statusCategory\s*=\s*"To Do"/i
+               { "issues" => [
+                   { "key" => "PG-500", "fields" => {
+                       "summary" => "Brand new", "status" => { "name" => "To Do" },
+                       "issuetype" => { "name" => "Task" }, "created" => created } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+             else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
+             end
+      { status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" } }
+    end
+
+    JiraSync.new(
+      epic_query: "project = PG", unplanned_query: nil,
+      new_unplanned_query: 'project = PG AND statusCategory = "To Do"',
+      new_unplanned_days: 10,
+      status_map: { "To Do" => "new" }, new_statuses: [ "new" ]
+    ).run!
+
+    issue = Issue.find_by!(jira_key: "PG-500")
+    assert_nil issue.epic_id
+    assert_equal true, issue.provisional
+  end
+
+  test "candidate also returned by unplanned_query stays non-provisional" do
+    created = jira_time(2.days.ago)
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      fields = { "summary" => "Dual", "status" => { "name" => "To Do" },
+                 "issuetype" => { "name" => "Task" }, "created" => created }
+      body = if decoded =~ /parent is EMPTY/i
+               { "issues" => [ { "key" => "PG-501", "fields" => fields } ],
+                 "total" => 1, "startAt" => 0, "maxResults" => 50 }
+             elsif decoded =~ /statusCategory\s*=\s*"To Do"/i
+               { "issues" => [ { "key" => "PG-501", "fields" => fields } ],
+                 "total" => 1, "startAt" => 0, "maxResults" => 50 }
+             else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
+             end
+      { status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" } }
+    end
+
+    JiraSync.new(
+      epic_query: "project = PG",
+      unplanned_query: "project = PG AND parent is EMPTY",
+      new_unplanned_query: 'project = PG AND statusCategory = "To Do"',
+      new_unplanned_days: 10,
+      status_map: { "To Do" => "new" }, new_statuses: [ "new" ]
+    ).run!
+
+    assert_equal false, Issue.find_by!(jira_key: "PG-501").provisional
+  end
+
+  test "ignores candidates older than the window" do
+    created = jira_time(40.days.ago)
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      body = if decoded =~ /statusCategory\s*=\s*"To Do"/i
+               { "issues" => [
+                   { "key" => "PG-502", "fields" => {
+                       "summary" => "Old", "status" => { "name" => "To Do" },
+                       "issuetype" => { "name" => "Task" }, "created" => created } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+             else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
+             end
+      { status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" } }
+    end
+
+    JiraSync.new(
+      epic_query: "project = PG", unplanned_query: nil,
+      new_unplanned_query: 'project = PG AND statusCategory = "To Do"',
+      new_unplanned_days: 10,
+      status_map: { "To Do" => "new" }, new_statuses: [ "new" ]
+    ).run!
+
+    assert_nil Issue.find_by(jira_key: "PG-502")
+  end
+
+  test "ignores candidates whose mapped status is not new" do
+    created = jira_time(2.days.ago)
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      body = if decoded =~ /statusCategory\s*=\s*"To Do"/i
+               { "issues" => [
+                   { "key" => "PG-503", "fields" => {
+                       "summary" => "InProg", "status" => { "name" => "In Progress" },
+                       "issuetype" => { "name" => "Task" }, "created" => created } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+             else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
+             end
+      { status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" } }
+    end
+
+    JiraSync.new(
+      epic_query: "project = PG", unplanned_query: nil,
+      new_unplanned_query: 'project = PG AND statusCategory = "To Do"',
+      new_unplanned_days: 10,
+      status_map: { "To Do" => "new", "In Progress" => "in_progress" },
+      new_statuses: [ "new" ]
+    ).run!
+
+    assert_nil Issue.find_by(jira_key: "PG-503")
+  end
+
+  test "prunes a provisional issue that is no longer returned" do
+    stale = Issue.create!(jira_key: "PG-504", epic: nil, issue_type: "Task",
+                          summary: "Was new", jira_status: "To Do", provisional: true)
+    stub_request(:get, %r{/search}).to_return(
+      status: 200,
+      body: { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }.to_json,
+      headers: { "Content-Type" => "application/json" }
+    )
+
+    JiraSync.new(
+      epic_query: "project = PG", unplanned_query: nil,
+      new_unplanned_query: 'project = PG AND statusCategory = "To Do"',
+      status_map: { "To Do" => "new" }, new_statuses: [ "new" ]
+    ).run!
+
+    assert_not_nil stale.reload.removed_at
   end
 end

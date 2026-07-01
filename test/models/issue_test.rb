@@ -31,4 +31,10 @@ class IssueTest < ActiveSupport::TestCase
     assert_equal [ "backend" ], issue.labels
     assert_equal [ "API", "Docs" ], issue.components
   end
+
+  test "provisional defaults to false" do
+    issue = Issue.create!(jira_key: "PG-900", issue_type: "Task",
+                          summary: "x", jira_status: "To Do")
+    assert_equal false, issue.provisional
+  end
 end

@@ -350,6 +350,11 @@ a.kb-col-name:hover { text-decoration: underline; }
   font: 700 10.5px var(--kb-ui); line-height: 1.4;
 }
 .kb-age .dot { width: 5px; height: 5px; border-radius: 50%; }
+.kb-new-badge {
+  font: 800 8.5px var(--kb-ui); letter-spacing: .5px;
+  color: #fff; background: #2563eb;
+  border-radius: 4px; padding: 1px 5px; line-height: 1.5;
+}
 
 .kb-card-title {
   font: 600 12.5px/1.32 var(--kb-ui); color: #1e2430;
@@ -393,6 +398,11 @@ a.kb-col-name:hover { text-decoration: underline; }
 [data-theme="dark"] .kb-card .kb-avatar { box-shadow: 0 0 0 1.5px #1c2430; }
 [data-theme="dark"] .kb-card[data-staleness="somewhat"] .kb-avatar { box-shadow: 0 0 0 1.5px #2a2317; }
 [data-theme="dark"] .kb-card[data-staleness="really"] .kb-avatar { box-shadow: 0 0 0 1.5px #2c1818; }
+[data-theme="dark"] .kb-card[data-provisional="1"] {
+  background: #172033;
+  border-color: #2b3a5e;
+}
+[data-theme="dark"] .kb-card[data-provisional="1"] .kb-avatar { box-shadow: 0 0 0 1.5px #172033; }
 
 /* ---------- column drag-and-drop ---------- */
 .kb-col-head { cursor: grab; user-select: none; }

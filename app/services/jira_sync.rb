@@ -4,9 +4,17 @@ class JiraSync
 
   def initialize(epic_query: LASER_FOCUS_CONFIG.board.epic_query,
                  unplanned_query: LASER_FOCUS_CONFIG.board.unplanned_query,
+                 new_unplanned_query: LASER_FOCUS_CONFIG.board.new_unplanned_query,
+                 new_unplanned_days: LASER_FOCUS_CONFIG.board.new_unplanned_days,
+                 status_map: LASER_FOCUS_CONFIG.board.status_map,
+                 new_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
                  client: JiraClient.new)
     @epic_query = epic_query
     @unplanned_query = unplanned_query
+    @new_unplanned_query = new_unplanned_query
+    @new_unplanned_days = new_unplanned_days
+    @status_map = status_map
+    @new_statuses = new_statuses
     @client = client
   end
 
@@ -75,8 +83,33 @@ class JiraSync
         upsert_issue(ji, nil, now)
         seen_orphan_keys << ji.key
       end
-      Issue.active.orphan.where.not(jira_key: seen_orphan_keys).update_all(removed_at: now)
       fetched += orphans.size
+    end
+
+    seen_provisional_keys = []
+    if @new_unplanned_query.present?
+      candidates = @client.search_all(@new_unplanned_query, fields: ISSUE_FIELDS, expand: "changelog")
+      cutoff = now - @new_unplanned_days.to_i.days
+      candidates.each do |ji|
+        next if all_assigned_keys.include?(ji.key)
+        next if seen_orphan_keys.include?(ji.key)
+
+        display = @status_map[ji.fields.dig("status", "name")]
+        next unless @new_statuses.include?(display)
+
+        created = parse_time(ji.fields["created"])
+        next if created.nil? || created < cutoff
+
+        upsert_issue(ji, nil, now, provisional: true)
+        seen_provisional_keys << ji.key
+      end
+      fetched += candidates.size
+    end
+
+    if @unplanned_query.present? || @new_unplanned_query.present?
+      Issue.active.orphan
+           .where.not(jira_key: seen_orphan_keys + seen_provisional_keys)
+           .update_all(removed_at: now)
     end
 
     sync_pull_requests!(all_assigned_keys.to_a + seen_orphan_keys)
@@ -113,13 +146,14 @@ class JiraSync
     epic
   end
 
-  def upsert_issue(ji, epic, now)
+  def upsert_issue(ji, epic, now, provisional: false)
     issue = Issue.find_or_initialize_by(jira_key: ji.key)
     new_status = ji.fields.dig("status", "name")
 
     issue.assign_attributes(
       jira_id: ji.id,
       epic: epic,
+      provisional: provisional,
       summary: ji.fields["summary"],
       jira_status: new_status,
       issue_type: ji.fields.dig("issuetype", "name"),
