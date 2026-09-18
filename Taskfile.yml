@@ -55,9 +55,15 @@ tasks:
 
   redeploy:
     desc: "Rebuild and restart the prod stack (run on the Hetzner box after git pull)"
+    # Migrations are not run here on purpose. bin/docker-entrypoint runs
+    # db:prepare whenever the container command contains "server", which the
+    # prod CMD does, so the app migrates itself on boot. Running db:migrate as a
+    # second step raced that: `up -d` returns when the container starts, not when
+    # it is ready, so the two could collide on a half-initialised database.
+    # bin/docker-entrypoint uses `bash -e`, so a failed migration stops the
+    # container rather than silently serving an old schema -- check `task prod-logs`.
     cmds:
       - docker compose -f docker-compose.prod.yml up -d --build
-      - docker compose -f docker-compose.prod.yml exec app bin/rails db:migrate
 
   prod-logs:
     desc: "Tail prod app logs"
