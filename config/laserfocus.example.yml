@@ -8,11 +8,11 @@ polling:
   idle_interval_minutes: 60
 
 board:
-  epic_query: 'issuetype = Epic AND project = PG AND labels = "Priority" AND status != Done'
+  epic_query: 'issuetype = Epic AND project = PG AND labels = "Priority" AND statusCategory != Done'
   # Optional. Used by `rails epic_events:discover_closed` to backfill goal
   # history for epics that reached a terminal status before this app started
   # tracking them. Mirror epic_query but flip the status filter.
-  closed_epics_query: 'issuetype = Epic AND project = PG AND labels = "Priority" AND status IN (SUCCESS, FAILURE, REJECTED, "GONE BAD")'
+  closed_epics_query: 'issuetype = Epic AND project = PG AND labels = "Priority" AND statusCategory = Done'
   # Optional. Issues that should appear in a leftmost "Unplanned" column.
   # Match all candidate tickets here (e.g. by Priority label); JiraSync will
   # exclude any whose parent is a tracked epic. Author the JQL with your own
