@@ -743,3 +743,70 @@ a.kb-col-fold-name:hover { text-decoration: underline; }
   .kb-col-stack { width: 100%; flex-direction: row; flex-wrap: wrap; }
   .kb-col-stack > .kb-col[data-collapsed="1"] { width: 44px; flex: 0 0 auto; }
 }
+
+/* ---------- roadmap alignment line ----------
+   Quiet when the roadmap, the epic status and the tickets agree; the findings
+   stay folded away until somebody asks for them. */
+.kb-roadmap {
+  flex: 0 0 auto;
+  margin: 10px 14px 0;
+  border-radius: 10px;
+  border: 1px solid var(--kb-border-strong);
+  background: var(--kb-surface);
+  overflow: hidden;
+}
+.kb-roadmap[data-tone="warn"] { border-color: #f3c98a; background: var(--kb-roadmap-warn-bg, #fffaf5); }
+[data-theme="dark"] .kb-roadmap[data-tone="warn"] { border-color: #6b4a1b; background: #241c12; }
+
+.kb-roadmap-head {
+  width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  background: transparent; border: none; cursor: pointer;
+  font-family: var(--kb-ui); text-align: left;
+}
+.kb-roadmap-head:hover { background: var(--kb-input-hover); }
+.kb-roadmap-label { font: 800 10.5px var(--kb-ui); letter-spacing: .5px; color: var(--kb-text-mute); }
+.kb-roadmap[data-tone="warn"] .kb-roadmap-label { color: #c2410c; }
+.kb-roadmap-summary { font: 600 12px var(--kb-ui); color: var(--kb-text); }
+.kb-roadmap-sep { color: var(--kb-text-faint); margin: 0 5px; }
+.kb-roadmap-attention { color: #c2410c; font-weight: 700; }
+.kb-roadmap-trail {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  font: 700 11px var(--kb-ui); color: var(--kb-text-mute);
+}
+.kb-roadmap-chev { transition: transform .15s; }
+.kb-roadmap-head[data-open="1"] .kb-roadmap-chev { transform: rotate(180deg); }
+
+.kb-roadmap-body {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 2px 14px 10px;
+  border-top: 1px solid var(--kb-border);
+}
+.kb-roadmap-finding { display: flex; gap: 9px; padding: 7px 0; align-items: flex-start; }
+.kb-roadmap-finding + .kb-roadmap-finding { border-top: 1px solid var(--kb-divider); }
+.kb-roadmap-dot { width: 5px; align-self: stretch; border-radius: 3px; flex: 0 0 auto; background: #94a3b8; }
+.kb-roadmap-finding[data-severity="high"] .kb-roadmap-dot { background: #ef4444; }
+.kb-roadmap-finding[data-severity="medium"] .kb-roadmap-dot { background: #f97316; }
+.kb-roadmap-finding-text { min-width: 0; }
+.kb-roadmap-finding-head { display: flex; align-items: baseline; gap: 7px; }
+.kb-roadmap-finding-key { font: 600 10.5px var(--kb-mono); color: var(--kb-text-mute); text-decoration: none; }
+.kb-roadmap-finding-key:hover { text-decoration: underline; }
+.kb-roadmap-finding-title { font: 700 12px var(--kb-ui); color: var(--kb-text); }
+.kb-roadmap-finding-detail { margin-top: 2px; font: 500 11.5px/1.45 var(--kb-ui); color: var(--kb-text-soft); }
+
+/* ---------- column lane tags ---------- */
+.kb-col-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 7px; }
+.kb-col-tag {
+  font: 700 9.5px var(--kb-ui);
+  border-radius: 4px; padding: 1px 6px;
+  background: var(--kb-stack-bg); color: var(--kb-text-mute);
+  text-decoration: none;
+}
+.kb-col-tag-now { background: #eff5ff; color: #1d4ed8; }
+[data-theme="dark"] .kb-col-tag-now { background: #1d2a44; color: #93b4f3; }
+.kb-col-tag-now:hover { text-decoration: underline; }
+.kb-col-tag-ongoing { background: #ccfbf1; color: #0f766e; }
+[data-theme="dark"] .kb-col-tag-ongoing { background: #123632; color: #5eead4; }
+.kb-col-tag-flag { background: #fef0e7; color: #c2410c; }
+[data-theme="dark"] .kb-col-tag-flag { background: #2a2317; color: #f0a860; }

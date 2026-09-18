@@ -122,6 +122,9 @@ module LaserFocus
       def users       = (@h["users"] || []).map { |u| OpenStruct.new(u) }
       def status_map  = @h["status_map"]
       def new_statuses  = @h["new_statuses"]
+      # Epics carrying this label are continuous work: they never finish, so the
+      # board treats them as a lane of their own rather than as stalled focus.
+      def ongoing_label = @h["ongoing_label"]
       def done_statuses = @h["done_statuses"]
       def staleness  = OpenStruct.new(@h["staleness"])
       def ignore_staleness_for_new_issues

@@ -10,13 +10,16 @@ class BoardPresenterTest < ActiveSupport::TestCase
     "Done" => "done"
   }
 
-  def build_presenter(orphan_issues: [], column_order: [], group_mode: :staleness, collapsed_keys: [], expand_all: false)
+  def build_presenter(orphan_issues: [], column_order: [], group_mode: :staleness, collapsed_keys: [],
+                      expand_all: false, ongoing_label: nil, now_ideas: [])
     BoardPresenter.new(
       epics: Epic.active.ordered.includes(:issues),
       orphan_issues: orphan_issues,
       column_order: column_order,
       collapsed_keys: collapsed_keys,
       expand_all: expand_all,
+      ongoing_label: ongoing_label,
+      now_ideas: now_ideas,
       group_mode: group_mode,
       status_map: STATUS_MAP,
       new_statuses: [ "new" ],
@@ -256,5 +259,55 @@ class BoardPresenterTest < ActiveSupport::TestCase
     row = unplanned.new_issues.first
     assert_equal "PG-600", row.jira_key
     assert_equal true, row.provisional
+  end
+
+  # ---------- lanes ----------
+
+  def now_idea(key, delivery_keys)
+    idea = DiscoveryIdea.create!(jira_key: key, summary: "Idea #{key}", horizon: "now")
+    delivery_keys.each { |k| idea.idea_deliveries.create!(jira_key: k, issue_type: "Epic") }
+    idea
+  end
+
+  test "an epic with tickets in flight is focus" do
+    col = build_presenter.columns.find { |c| c.epic.jira_key == "PG-1" }
+    assert_equal :focus, col.lane
+  end
+
+  test "the ongoing label wins over everything else" do
+    epics(:priority_one).update!(raw_fields: { "labels" => [ "Ongoing" ] })
+    col = build_presenter(ongoing_label: "Ongoing").columns.find { |c| c.epic.jira_key == "PG-1" }
+    assert_equal :ongoing, col.lane
+  end
+
+  test "an epic with nothing in flight and no roadmap item is parked" do
+    Issue.where(jira_key: %w[PG-10 PG-11]).update_all(jira_status: "To Do")
+    col = build_presenter.columns.find { |c| c.epic.jira_key == "PG-1" }
+    assert_equal :parked, col.lane
+  end
+
+  test "an epic whose own status is in progress stays focus with nothing in flight" do
+    Issue.where(jira_key: %w[PG-10 PG-11]).update_all(jira_status: "To Do")
+    epics(:priority_one).update!(
+      raw_fields: { "status" => { "statusCategory" => { "key" => "indeterminate" } } }
+    )
+    col = build_presenter.columns.find { |c| c.epic.jira_key == "PG-1" }
+    assert_equal :focus, col.lane
+  end
+
+  test "a Now commitment makes an idle epic focus and attaches the idea" do
+    Issue.where(jira_key: %w[PG-10 PG-11]).update_all(jira_status: "To Do")
+    idea = now_idea("PGR-1", %w[PG-1])
+
+    col = build_presenter(now_ideas: [ idea ]).columns.find { |c| c.epic.jira_key == "PG-1" }
+
+    assert_equal :focus, col.lane
+    assert_equal "PGR-1", col.roadmap_idea.jira_key
+  end
+
+  test "columns with no roadmap item carry no idea" do
+    idea = now_idea("PGR-1", %w[PG-1])
+    col = build_presenter(now_ideas: [ idea ]).columns.find { |c| c.epic.jira_key == "PG-2" }
+    assert_nil col.roadmap_idea
   end
 end

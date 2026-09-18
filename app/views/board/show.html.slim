@@ -125,6 +125,8 @@
       span.kb-user= current_user_email
       = button_to "Logout", "/logout", method: :delete, form: { style: "display:inline;margin:0;" }, class: "kb-logout-btn"
 
+  = render "board/roadmap_line", alignment: @presenter.alignment
+
   main.kb-board#board-root data-board-target="root"
     - @presenter.column_groups.each do |group|
       - if group.size == 1 && !@presenter.stacked?(group.first)

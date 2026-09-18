@@ -1,5 +1,5 @@
 class JiraSync
-  EPIC_FIELDS  = %w[summary status priority assignee created].freeze
+  EPIC_FIELDS  = %w[summary status priority assignee created labels].freeze
   ISSUE_FIELDS = %w[summary status issuetype assignee priority created parent labels components description].freeze
 
   def initialize(epic_query: LASER_FOCUS_CONFIG.board.epic_query,

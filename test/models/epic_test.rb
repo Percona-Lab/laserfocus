@@ -18,4 +18,24 @@ class EpicTest < ActiveSupport::TestCase
     new_high = Epic.create!(jira_key: "PG-1", name: "Alpha",   priority: 1, jira_status: "To Do", created_at: 1.day.ago)
     assert_equal [ old_low, new_high ], Epic.ordered.to_a
   end
+
+  test "labels come back from raw_fields, empty when absent" do
+    assert_equal [], Epic.new.labels
+    assert_equal %w[Ongoing pg_tde],
+                 Epic.new(raw_fields: { "labels" => [ "Ongoing", "pg_tde", "" ] }).labels
+  end
+
+  test "ongoing? matches the configured label only" do
+    epic = Epic.new(raw_fields: { "labels" => [ "Ongoing" ] })
+    assert epic.ongoing?("Ongoing")
+    refute epic.ongoing?("Backlog")
+    refute epic.ongoing?(nil)
+  end
+
+  test "status_category reads Jira's coarse bucket" do
+    assert_nil Epic.new.status_category
+    epic = Epic.new(raw_fields: { "status" => { "statusCategory" => { "key" => "indeterminate" } } })
+    assert_equal "indeterminate", epic.status_category
+    assert epic.in_progress?
+  end
 end

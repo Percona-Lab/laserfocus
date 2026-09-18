@@ -9,6 +9,9 @@
 - middle_count = middle_rows.values.sum(&:size)
 - stale_count = column.middle_groups.values.flatten.count { |p| %i[somewhat really].include?(p.staleness) }
 - accent = column_accent(epic.jira_key)
+- not_started = column.lane == :focus && middle_count.zero? && total > 0
+- not_started_label = column.roadmap_idea ? "committed · nothing started" : "nothing started"
+- not_started_hint = column.roadmap_idea ? "The roadmap has this in Now, but no ticket has left the to-do pile" : "The epic reports progress, but no ticket has left the to-do pile"
 - dist_buckets = ordered_display_states.map { |s| n = all_issues.count { |p| p.display_status == s[:id] }; [s, n] }.select { |_, n| n > 0 }
 
 section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-controller="stack" data-stack-todo-open-value="false" data-stack-done-open-value="false"
@@ -46,6 +49,17 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
       - unless epic.jira_key == "UNPLANNED"
         span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;margin-left:auto;" title=epic_avatar[:name]
           = epic_avatar[:initials]
+    - if column.roadmap_idea || column.lane == :ongoing || not_started
+      .kb-col-tags
+        - if column.roadmap_idea
+          a.kb-col-tag.kb-col-tag-now href=jira_url(column.roadmap_idea.jira_key) target="_blank" rel="noreferrer" title=column.roadmap_idea.summary
+            = "#{column.roadmap_idea.jira_key} · Now"
+        - if column.lane == :ongoing
+          span.kb-col-tag.kb-col-tag-ongoing title="Continuous work: this epic never finishes"
+            | ongoing
+        - if not_started
+          span.kb-col-tag.kb-col-tag-flag title=not_started_hint
+            = not_started_label
     .kb-dist aria-hidden="true"
       - dist_buckets.each do |s, n|
         span title="#{s[:label]}: #{n}" style="flex:#{n};background:#{s[:color]};"

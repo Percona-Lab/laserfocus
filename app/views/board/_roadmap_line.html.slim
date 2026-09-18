@@ -1,0 +1,30 @@
+/ One line above the board comparing the roadmap against what the tickets are
+/ doing. Quiet when they agree; the findings only unfold on demand.
+- a = alignment
+- return unless a.configured?
+- tone = a.aligned? ? "ok" : "warn"
+
+section.kb-roadmap data-tone=tone data-controller="roadmap"
+  button.kb-roadmap-head type="button" data-action="roadmap#toggle" data-roadmap-target="btn" data-open="0" aria-expanded="false"
+    span.kb-roadmap-label ROADMAP
+    span.kb-roadmap-summary
+      | Now: #{a.now_on_board} of #{a.now_total} on the board
+      - if a.needs_attention > 0
+        span.kb-roadmap-sep ·
+        span.kb-roadmap-attention= "#{a.needs_attention} need attention"
+    - if a.findings.any?
+      span.kb-roadmap-trail
+        = "#{a.findings.size} #{'notice'.pluralize(a.findings.size)}"
+        svg.kb-roadmap-chev width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
+          path d="M2 3.5L4.5 6L7 3.5"
+
+  - if a.findings.any?
+    .kb-roadmap-body data-roadmap-target="body" hidden=true
+      - a.findings.each do |f|
+        .kb-roadmap-finding data-severity=f.severity
+          span.kb-roadmap-dot
+          .kb-roadmap-finding-text
+            .kb-roadmap-finding-head
+              a.kb-roadmap-finding-key href=jira_url(f.key) target="_blank" rel="noreferrer"= f.key
+              span.kb-roadmap-finding-title= f.headline
+            .kb-roadmap-finding-detail= f.detail

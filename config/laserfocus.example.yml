@@ -29,6 +29,10 @@ board:
     "In Progress": "in_progress"
     "In Review":   "review"
     "Done":        "done"
+  # Optional. Epics with this label are continuous work (upstream, community)
+  # rather than something that finishes, so the board tags them as their own
+  # lane instead of flagging them as stalled.
+  ongoing_label: "Ongoing"
   new_statuses:  ["new"]
   done_statuses: ["done"]
   staleness:

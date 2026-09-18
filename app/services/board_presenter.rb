@@ -24,7 +24,12 @@ class BoardPresenter
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira
   end
 
-  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed) do
+  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea) do
+    def new_count    = new_issues.size
+    def middle_count = middle_groups.values.sum(&:size)
+    def done_count   = done_issues.size
+    def total_count  = new_count + middle_count + done_count
+
     def all_issues
       new_issues + middle_groups.values.flatten + done_issues
     end
@@ -64,6 +69,8 @@ class BoardPresenter
     order = BoardOrder.instance
     new(
       epics: Epic.active.ordered.includes(:issues),
+      ongoing_label: config.ongoing_label,
+      now_ideas: DiscoveryIdea.now.includes(:idea_deliveries).to_a,
       orphan_issues: Issue.active.orphan,
       column_order: order.column_order,
       collapsed_keys: order.collapsed_columns,
@@ -84,9 +91,12 @@ class BoardPresenter
   end
 
   def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:,
-                 orphan_issues: [], column_order: [], collapsed_keys: [], expand_all: false, group_mode: :staleness)
+                 orphan_issues: [], column_order: [], collapsed_keys: [], expand_all: false,
+                 ongoing_label: nil, now_ideas: [], group_mode: :staleness)
     @epics = epics
     @orphan_issues = orphan_issues
+    @ongoing_label = ongoing_label
+    @now_ideas = now_ideas
     @column_order = column_order
     @collapsed_keys = collapsed_keys.to_set
     @expand_all = !!expand_all
@@ -109,6 +119,28 @@ class BoardPresenter
 
   def expand_all? = @expand_all
 
+  def now_ideas = @now_ideas
+
+  def alignment
+    @alignment ||= AlignmentCalculator.new(columns: columns, now_ideas: @now_ideas)
+  end
+
+  # Which lane a column belongs to. Derived rather than stored, and it checks
+  # what the tickets are doing before what anybody declared, because epic status
+  # drifts from reality in both directions.
+  def lane_for(epic, middle_groups)
+    return :ongoing if epic.respond_to?(:ongoing?) && epic.ongoing?(@ongoing_label)
+    return :focus   if middle_groups.values.sum(&:size).positive?
+    return :focus   if epic.respond_to?(:in_progress?) && epic.in_progress?
+    return :focus   if roadmap_idea_for(epic.jira_key)
+
+    :parked
+  end
+
+  def roadmap_idea_for(jira_key)
+    ideas_by_delivery_key[jira_key]
+  end
+
   # Collapsed for real on this render (the override keeps stored-collapsed columns open).
   def stacked?(column) = column.collapsed && !@expand_all
 
@@ -129,6 +161,12 @@ class BoardPresenter
 
   private
 
+  def ideas_by_delivery_key
+    @ideas_by_delivery_key ||= @now_ideas.each_with_object({}) do |idea, map|
+      idea.idea_deliveries.each { |d| map[d.jira_key] ||= idea }
+    end
+  end
+
   def sort_columns(cols)
     index = {}
     @column_order.each_with_index { |key, i| index[key] = i }
@@ -146,7 +184,12 @@ class BoardPresenter
     middle     = sorted - new_group - done_group
     middle_groups = group_middle(middle)
 
-    Column.new(epic, new_group, middle_groups, done_group, @collapsed_keys.include?(epic.jira_key))
+    Column.new(
+      epic, new_group, middle_groups, done_group,
+      @collapsed_keys.include?(epic.jira_key),
+      lane_for(epic, middle_groups),
+      roadmap_idea_for(epic.jira_key)
+    )
   end
 
   def group_middle(middle)

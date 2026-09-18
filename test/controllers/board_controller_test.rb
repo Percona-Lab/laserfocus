@@ -116,4 +116,34 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select ".kb-col[data-collapsed='1']", count: 1
   end
+
+  test "the roadmap line is absent when no Now item exists" do
+    get "/"
+    assert_response :success
+    assert_select ".kb-roadmap", count: 0
+  end
+
+  test "the roadmap line counts Now items that reached the board" do
+    on_board = DiscoveryIdea.create!(jira_key: "PGR-1", summary: "On board", horizon: "now")
+    on_board.idea_deliveries.create!(jira_key: "PG-1", issue_type: "Epic")
+    missing = DiscoveryIdea.create!(jira_key: "PGR-2", summary: "Nothing in Jira", horizon: "now")
+
+    get "/"
+
+    assert_response :success
+    assert_select ".kb-roadmap[data-tone=warn]"
+    assert_select ".kb-roadmap-summary", text: /Now: 1 of 2 on the board/
+    assert_select ".kb-roadmap-attention", text: "1 need attention"
+    assert_select ".kb-roadmap-finding[data-severity=high] .kb-roadmap-finding-key", text: missing.jira_key
+  end
+
+  test "a column backed by a Now item is tagged with it" do
+    idea = DiscoveryIdea.create!(jira_key: "PGR-1", summary: "Roadmap item", horizon: "now")
+    idea.idea_deliveries.create!(jira_key: "PG-1", issue_type: "Epic")
+
+    get "/"
+
+    assert_response :success
+    assert_select "#kb-col-PG-1 .kb-col-tag-now", text: /PGR-1/
+  end
 end

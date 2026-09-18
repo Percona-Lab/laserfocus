@@ -7,6 +7,7 @@ LaserFocus polls JIRA on a schedule, stores a denormalized snapshot in SQLite, a
 
 - Board grouped by Epic (columns), plus an optional "Unplanned" column for orphan tickets.
 - Collapsible columns: fold a column into a narrow strip showing just the name and the new / in progress / done counts (plus a dot when something in progress is stale). Collapse state is shared by everyone, like column order, adjacent collapsed columns stack in one slot, and epics that first show up in a "new" status start collapsed. `/?expand_all=1` shows everything expanded without touching the stored state.
+- Roadmap alignment: reads the Jira Product Discovery project and shows, in one line above the board, how many "Now" commitments actually have a column. An epic behind a "Now" item joins the board even without the `Priority` label, and columns are tagged with the roadmap item, the `Ongoing` lane, or a "nothing started" flag.
 - Staleness highlighting: tickets get flagged "somewhat" and "really" stale after configurable day thresholds.
 - Adaptive polling: tight tick interval while someone is actively viewing the board, long interval otherwise.
 - Google OAuth login restricted to an allow-list of domains and/or individual emails.
@@ -58,6 +59,13 @@ important sections:
   `new` / `in_progress` / `review` / `done` columns.
 - `board.staleness.somewhat_days` / `really_days` — day thresholds for
   the two staleness tiers.
+- `board.ongoing_label` — epics with this label are continuous work and get
+  their own lane instead of being flagged as stalled.
+- `discovery.*` — optional Jira Product Discovery roadmap. `now_query` /
+  `next_query` are JQL over the ideas project; `horizon_field`,
+  `incubator_field` and `rank_field` are the custom field ids on an idea, and
+  `delivery_link_type_id` is the issue link type JPD uses for delivery
+  tickets. Leave the section out to switch the roadmap features off.
 - `polling.tick_seconds` / `active_window_minutes` / `idle_interval_minutes`
   — how often the sync job runs while the board is being watched vs.
   while it's idle.
