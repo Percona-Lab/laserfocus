@@ -6,6 +6,7 @@ LaserFocus polls JIRA on a schedule, stores a denormalized snapshot in SQLite, a
 ## What you get
 
 - Board grouped by Epic (columns), plus an optional "Unplanned" column for orphan tickets.
+- Collapsible columns: fold a column into a narrow strip showing just the name and the new / in progress / done counts (plus a dot when something in progress is stale). Collapse state is shared by everyone, like column order, adjacent collapsed columns stack in one slot, and epics that first show up in a "new" status start collapsed. `/?expand_all=1` shows everything expanded without touching the stored state.
 - Staleness highlighting: tickets get flagged "somewhat" and "really" stale after configurable day thresholds.
 - Adaptive polling: tight tick interval while someone is actively viewing the board, long interval otherwise.
 - Google OAuth login restricted to an allow-list of domains and/or individual emails.

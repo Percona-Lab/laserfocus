@@ -15,4 +15,9 @@ class BoardOrderTest < ActiveSupport::TestCase
     assert_equal existing.id, BoardOrder.instance.id
     assert_equal [ "PG-2", "PG-1" ], BoardOrder.instance.column_order
   end
+
+  test "collapsed_columns defaults to empty" do
+    BoardOrder.delete_all
+    assert_equal [], BoardOrder.instance.reload.collapsed_columns
+  end
 end

@@ -202,9 +202,8 @@ html, body { background: var(--kb-bg); font-family: var(--kb-ui); color: var(--k
 /* ---------- board scroll area ---------- */
 .kb-board {
   flex: 1; min-height: 0;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(220px, 360px);
+  display: flex;
+  flex-direction: row;
   align-items: stretch;
   gap: 10px;
   padding: 14px;
@@ -217,7 +216,7 @@ html, body { background: var(--kb-bg); font-family: var(--kb-ui); color: var(--k
 
 /* ---------- column ---------- */
 .kb-col {
-  flex: 1 1 0; min-width: 220px; max-width: 360px;
+  flex: 1 1 220px; min-width: 220px; max-width: 360px;
   display: flex; flex-direction: column;
   background: var(--kb-col-bg);
   border-radius: 12px; border: 1px solid var(--kb-border);
@@ -410,6 +409,8 @@ a.kb-col-name:hover { text-decoration: underline; }
 .kb-col[data-dragging="1"] { opacity: 0.4; }
 .kb-col[data-drop-side="left"]  { box-shadow: -3px 0 0 0 #3b82f6; }
 .kb-col[data-drop-side="right"] { box-shadow:  3px 0 0 0 #3b82f6; }
+.kb-col[data-drop-side="top"]    { box-shadow: 0 -3px 0 0 #3b82f6; }
+.kb-col[data-drop-side="bottom"] { box-shadow: 0  3px 0 0 #3b82f6; }
 
 /* animations */
 .kb-fade-in { animation: pgfade .16s ease-out; }
@@ -476,15 +477,6 @@ a.kb-col-name:hover { text-decoration: underline; }
 /* utility */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 
-@media (max-width: 800px) {
-  .kb-board {
-    grid-auto-flow: row;
-    grid-auto-columns: auto;
-    grid-auto-rows: auto;
-  }
-  .kb-col { max-width: none; width: 100%; }
-}
-
 /* ---------- collapsible middle groups ---------- */
 .kb-divider-toggle {
   width: 100%;
@@ -515,7 +507,7 @@ a.kb-col-name:hover { text-decoration: underline; }
 .kb-middle-body[hidden] { display: none; }
 
 /* ---------- per-column collapse-all button ---------- */
-.kb-col-collapse-btn {
+.kb-col-collapse-btn, .kb-col-fold-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -530,9 +522,61 @@ a.kb-col-name:hover { text-decoration: underline; }
   cursor: pointer;
   transition: background .12s, color .12s;
 }
-.kb-col-collapse-btn:hover { background: var(--kb-input-hover); color: var(--kb-text); }
+.kb-col-collapse-btn:hover, .kb-col-fold-btn:hover { background: var(--kb-input-hover); color: var(--kb-text); }
 .kb-col-collapse-btn[data-open="0"] .kb-col-compress { display: none; }
 .kb-col-collapse-btn[data-open="1"] .kb-col-expand  { display: none; }
+
+/* ---------- collapsed columns ---------- */
+.kb-col-stack {
+  flex: 0 0 auto; width: 44px;
+  display: flex; flex-direction: column; gap: 6px;
+  align-items: stretch;
+}
+.kb-col[data-collapsed="1"] {
+  flex: 0 0 auto; width: 44px; min-width: 0; max-width: none;
+}
+.kb-col-stack > .kb-col[data-collapsed="1"] { flex: 1 1 auto; }
+.kb-col[data-collapsed="1"] .kb-col-head {
+  flex: 1 1 auto;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 4px 10px;
+  border-bottom: none; position: static;
+  border-radius: 12px;
+}
+.kb-col[data-collapsed="1"] .kb-col-accent { width: 100%; margin-bottom: 2px; }
+.kb-col-fold-counts { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.kb-col-fold-count {
+  position: relative;
+  font-size: 11px; font-weight: 700; line-height: 1.3; font-family: var(--kb-ui);
+  color: var(--kb-fold, var(--kb-text-mute));
+}
+[data-theme="dark"] .kb-col-fold-count { color: var(--kb-fold-dark, var(--kb-text-soft)); }
+.kb-col-fold-stale {
+  position: absolute; top: 1px; right: -7px;
+  width: 6px; height: 6px; border-radius: 50%; background: #f97316;
+}
+.kb-col-fold-name {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-size: 11.5px; font-weight: 700; color: var(--kb-text); line-height: 1.1;
+  max-height: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-decoration: none;
+}
+a.kb-col-fold-name:hover { text-decoration: underline; }
+.kb-col-fold-key {
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-family: var(--kb-mono); font-size: 9px; font-weight: 600; color: var(--kb-text-faint);
+  margin-top: auto;
+}
+.kb-col-collapsed-chip {
+  font-size: 9px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase;
+  color: var(--kb-text-mute); background: var(--kb-stack-bg);
+  border: 1px dashed var(--kb-border-strong); border-radius: 4px; padding: 0 5px;
+}
+.kb-expand-all-hint {
+  font: 600 11px/1 var(--kb-ui); color: #1d4ed8; background: #eff6ff;
+  border: 1px solid #bfdbfe; border-radius: 7px; padding: 5px 9px; text-decoration: none;
+}
+[data-theme="dark"] .kb-expand-all-hint { color: #93c5fd; background: #1d2a44; border-color: #3b5aa3; }
 
 /* ---------- PR button on cards ---------- */
 .kb-pr-btn {
@@ -676,11 +720,11 @@ a.kb-col-name:hover { text-decoration: underline; }
 
 /* ---------- compact density mode ---------- */
 [data-density="compact"] .kb-board {
-  grid-auto-columns: minmax(160px, 240px);
   gap: 6px;
   padding: 8px;
 }
-[data-density="compact"] .kb-col { min-width: 160px; max-width: 240px; }
+[data-density="compact"] .kb-col { flex-basis: 160px; min-width: 160px; max-width: 240px; }
+[data-density="compact"] .kb-col-stack, [data-density="compact"] .kb-col[data-collapsed="1"] { width: 36px; min-width: 0; max-width: none; }
 [data-density="compact"] .kb-col-head { padding: 5px 8px; }
 [data-density="compact"] .kb-col-accent { margin-bottom: 5px; }
 [data-density="compact"] .kb-col-meta { margin: 3px 0 4px; }
@@ -690,3 +734,12 @@ a.kb-col-name:hover { text-decoration: underline; }
 [data-density="compact"] .kb-card-row2 { margin-top: 2px; }
 [data-density="compact"] .kb-card-title { font-size: 11.5px; }
 [data-density="compact"] .kb-ladder { display: none; }
+
+/* ---------- narrow screens ---------- */
+@media (max-width: 800px) {
+  .kb-board { flex-direction: column; }
+  .kb-col { max-width: none; width: 100%; flex: 0 0 auto; }
+  [data-density="compact"] .kb-col { flex-basis: auto; max-width: none; }
+  .kb-col-stack { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .kb-col-stack > .kb-col[data-collapsed="1"] { width: 44px; flex: 0 0 auto; }
+}

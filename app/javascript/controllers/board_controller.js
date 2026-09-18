@@ -129,6 +129,29 @@ export default class extends Controller {
     this.apply()
   }
 
+  // ---------- column collapse ----------
+  toggleCollapse(event) {
+    event.stopPropagation()
+    const btn = event.currentTarget
+    const col = btn.closest(".kb-col")
+    if (!col) return
+    const collapsed = btn.dataset.collapsed !== "1"
+    btn.dataset.collapsed = collapsed ? "1" : "0"
+    this._patchJson("/column_collapse", { key: col.dataset.epicKey, collapsed }, "Failed to save column collapse")
+      .catch(() => { btn.dataset.collapsed = collapsed ? "0" : "1" })
+  }
+
+  _patchJson(url, body, label) {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+    return fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
+      body: JSON.stringify(body)
+    }).then(res => {
+      if (!res.ok) throw new Error(`${res.status}`)
+    }).catch(e => { console.error(label, e); throw e })
+  }
+
   startSync(event) {
     const el = event.currentTarget
     el.dataset.syncing = "1"
@@ -283,7 +306,8 @@ export default class extends Controller {
     })
 
     this.element.querySelectorAll(".kb-col").forEach((col) => {
-      col.dataset.dim = (anyFilter && !hasMatch(col)) ? "1" : "0"
+      const collapsed = col.dataset.collapsed === "1"
+      col.dataset.dim = (anyFilter && (collapsed || !hasMatch(col))) ? "1" : "0"
     })
 
     document.querySelectorAll("[data-controller~=stack]").forEach((el) => {
@@ -435,10 +459,14 @@ export default class extends Controller {
       e.preventDefault()
       e.dataTransfer.dropEffect = "move"
       const rect = col.getBoundingClientRect()
-      const before = e.clientX < rect.left + rect.width / 2
+      const vertical = col.dataset.collapsed === "1"
+      const before = vertical
+        ? e.clientY < rect.top + rect.height / 2
+        : e.clientX < rect.left + rect.width / 2
+      const side = vertical ? (before ? "top" : "bottom") : (before ? "left" : "right")
       if (this._dropTarget !== col || this._dropBefore !== before) {
         root.querySelectorAll(".kb-col[data-drop-side]").forEach(c => delete c.dataset.dropSide)
-        col.dataset.dropSide = before ? "left" : "right"
+        col.dataset.dropSide = side
         this._dropTarget = col
         this._dropBefore = before
       }
@@ -449,7 +477,7 @@ export default class extends Controller {
       root.querySelectorAll(".kb-col[data-drop-side]").forEach(c => delete c.dataset.dropSide)
       if (this._dropTarget && this._draggedCol) {
         if (this._dropBefore) {
-          root.insertBefore(this._draggedCol, this._dropTarget)
+          this._dropTarget.before(this._draggedCol)
         } else {
           this._dropTarget.after(this._draggedCol)
         }
@@ -483,15 +511,8 @@ export default class extends Controller {
   }
 
   _saveColOrder() {
-    const order = [...this.rootTarget.querySelectorAll(":scope > .kb-col")].map(c => c.dataset.epicKey)
-    const token = document.querySelector('meta[name="csrf-token"]')?.content
-    fetch("/column_order", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
-      body: JSON.stringify({ order })
-    })
-      .then(res => { if (!res.ok) console.error("Failed to save column order", res.status) })
-      .catch(e => console.error("Failed to save column order", e))
+    const order = [...this.rootTarget.querySelectorAll(".kb-col")].map(c => c.dataset.epicKey)
+    this._patchJson("/column_order", { order }, "Failed to save column order").catch(() => {})
   }
 
   // ---------- persistence ----------

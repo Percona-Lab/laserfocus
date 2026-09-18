@@ -236,9 +236,24 @@ class JiraSync
         event_type: "added",
         occurred_at: epic_added_at(je, floor: floor) || now
       )
+      collapse_by_default(epic)
     end
 
     epic
+  end
+
+  # Epics entering the query in a "new" status start collapsed on the board.
+  # Only applied when the epic enters, later status changes leave the stored
+  # setting alone.
+  def collapse_by_default(epic)
+    return unless @new_statuses.include?(@status_map[epic.jira_status])
+
+    order = BoardOrder.instance
+    return if order.collapsed_columns.include?(epic.jira_key)
+
+    order.update!(collapsed_columns: order.collapsed_columns + [ epic.jira_key ])
+  rescue => e
+    Rails.logger.warn("[JiraSync] collapse default failed for #{epic.jira_key}: #{e.message}")
   end
 
   def record_epic_events(epics, event_type, now, times_by_key: {})

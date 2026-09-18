@@ -19,6 +19,11 @@ class BoardHelperTest < ActionView::TestCase
     assert_not state_meta("review").key?(:short)
   end
 
+  test "column_accent picks a stable palette entry per key" do
+    assert_equal "#0d9488", column_accent("PG-1")
+    assert_equal column_accent("PG-1"), column_accent("PG-1")
+  end
+
   test "provisional_meta returns the cool-blue paper and accent" do
     assert_equal({ paper: "#eaf1ff", accent: "#2563eb" }, provisional_meta)
   end
