@@ -92,4 +92,25 @@ class LaserFocusConfigTest < ActiveSupport::TestCase
     cfg = LaserFocus::Config.load_from_string(yaml)
     assert_equal 5, cfg.board.new_unplanned_days
   end
+
+  test "discovery is nil when the section is absent" do
+    cfg = LaserFocus::Config.load_from_string(File.read(Rails.root.join("config/laserfocus.test.yml")))
+    assert_nil cfg.discovery
+  end
+
+  test "discovery exposes its queries, fields and link type" do
+    yaml = File.read(Rails.root.join("config/laserfocus.test.yml")) + <<~YAML
+      discovery:
+        now_query: 'project = PGR AND cf[11275] = "Now"'
+        next_query: 'project = PGR AND cf[11275] = "Next"'
+        horizon_field: "customfield_11275"
+        incubator_field: "customfield_11290"
+        rank_field: "customfield_10019"
+    YAML
+    d = LaserFocus::Config.load_from_string(yaml).discovery
+
+    assert_equal %w[now next], d.queries.keys
+    assert_equal "10016", d.delivery_link_type_id
+    assert_equal %w[summary issuelinks customfield_11275 customfield_11290 customfield_10019], d.issue_fields
+  end
 end

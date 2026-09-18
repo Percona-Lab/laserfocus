@@ -65,6 +65,13 @@ module LaserFocus
       @board ||= BoardSection.new(@raw["board"])
     end
 
+    # Optional. Absent when this deployment has no Jira Product Discovery
+    # project to read, which leaves the roadmap features switched off.
+    def discovery
+      return @discovery if defined?(@discovery)
+      @discovery = @raw["discovery"].present? ? DiscoverySection.new(@raw["discovery"]) : nil
+    end
+
     private
 
     def struct(hash)
@@ -83,6 +90,26 @@ module LaserFocus
       def allowed_emails  = @h["allowed_emails"]  || []
       def google_client_id     = ENV.fetch("GOOGLE_CLIENT_ID")
       def google_client_secret = ENV.fetch("GOOGLE_CLIENT_SECRET")
+    end
+
+    class DiscoverySection
+      DEFAULT_LINK_TYPE_ID = "10016".freeze
+
+      def initialize(h) = @h = h
+      def now_query  = @h["now_query"]
+      def next_query = @h["next_query"]
+      def delivery_link_type_id = (@h["delivery_link_type_id"] || DEFAULT_LINK_TYPE_ID).to_s
+      def horizon_field   = @h["horizon_field"]
+      def incubator_field = @h["incubator_field"]
+      def rank_field      = @h["rank_field"]
+
+      def queries
+        { "now" => now_query, "next" => next_query }.compact_blank
+      end
+
+      def issue_fields
+        ([ "summary", "issuelinks" ] + [ horizon_field, incubator_field, rank_field ]).compact_blank.uniq
+      end
     end
 
     class BoardSection

@@ -35,3 +35,17 @@ board:
     somewhat_days: 7
     really_days:   21
   ignore_staleness_for_new_issues: true
+
+# Optional. Jira Product Discovery roadmap, used to check that what the roadmap
+# commits to "Now" is actually visible on the board, and to render the Next view.
+# Leave the whole section out to switch the roadmap features off.
+discovery:
+  now_query:  'project = PGR AND issuetype = Idea AND cf[11275] = "Now"'
+  next_query: 'project = PGR AND issuetype = Idea AND cf[11275] = "Next"'
+  # The issue link type JPD creates for delivery tickets ("Polaris work item link").
+  delivery_link_type_id: "10016"
+  # Custom field ids on the idea. horizon_field is the Now/Next/Later select;
+  # incubator_field is the readiness lifecycle the Next view ranks by.
+  horizon_field: "customfield_11275"
+  incubator_field: "customfield_11290"
+  rank_field: "customfield_10019"

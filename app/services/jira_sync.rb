@@ -8,6 +8,7 @@ class JiraSync
                  new_unplanned_days: LASER_FOCUS_CONFIG.board.new_unplanned_days,
                  status_map: LASER_FOCUS_CONFIG.board.status_map,
                  new_statuses: LASER_FOCUS_CONFIG.board.new_statuses,
+                 discovery: LASER_FOCUS_CONFIG.discovery,
                  client: JiraClient.new)
     @epic_query = epic_query
     @unplanned_query = unplanned_query
@@ -15,6 +16,7 @@ class JiraSync
     @new_unplanned_days = new_unplanned_days
     @status_map = status_map
     @new_statuses = new_statuses
+    @discovery = discovery
     @client = client
   end
 
@@ -23,7 +25,12 @@ class JiraSync
     fetched = 0
     now = Time.current
 
+    now_delivery_keys = sync_discovery!(now)
+
     epics_jira = @client.search_all(@epic_query, fields: EPIC_FIELDS, expand: "changelog")
+    # A roadmap commitment earns a column on its own, so the team never has to
+    # notice that somebody forgot the Priority label.
+    epics_jira += fetch_roadmap_epics(now_delivery_keys, epics_jira.map(&:key))
     epics_by_key = {}
     epics_jira.each do |je|
       epic = upsert_epic(je, now)
@@ -211,6 +218,80 @@ class JiraSync
   end
 
   private
+
+  # Reads the Jira Product Discovery roadmap and returns the delivery ticket
+  # keys of everything sitting in "Now". A failure here must not take the board
+  # sync with it, so it degrades to an empty list.
+  def sync_discovery!(now)
+    return [] if @discovery.nil? || @discovery.queries.empty?
+
+    seen = []
+    @discovery.queries.each do |horizon, jql|
+      @client.search_all(jql, fields: @discovery.issue_fields).each do |ji|
+        seen << upsert_idea(ji, horizon, now).jira_key
+      end
+    end
+    DiscoveryIdea.active.where.not(jira_key: seen).update_all(removed_at: now)
+
+    DiscoveryIdea.now.joins(:idea_deliveries).pluck("idea_deliveries.jira_key").uniq
+  rescue => e
+    Rails.logger.warn("[JiraSync] discovery sync failed: #{e.class}: #{e.message}")
+    []
+  end
+
+  def upsert_idea(ji, horizon, now)
+    idea = DiscoveryIdea.find_or_initialize_by(jira_key: ji.key)
+    idea.assign_attributes(
+      summary: ji.fields["summary"].to_s,
+      horizon: horizon,
+      incubator_status: select_field_value(ji.fields[@discovery.incubator_field]),
+      rank: ji.fields[@discovery.rank_field].presence,
+      raw_fields: ji.fields,
+      last_seen_in_query_at: now,
+      removed_at: nil
+    )
+    idea.save!
+    sync_idea_deliveries!(idea, ji)
+    idea
+  end
+
+  # JPD's delivery tickets ride on ordinary issue links of one dedicated type.
+  # The idea is the outward side, so the ticket arrives as inwardIssue.
+  def sync_idea_deliveries!(idea, ji)
+    seen = []
+    Array(ji.fields["issuelinks"]).each do |link|
+      next unless link.dig("type", "id").to_s == @discovery.delivery_link_type_id
+
+      target = link["inwardIssue"] || link["outwardIssue"]
+      key = target && target["key"]
+      next if key.blank?
+
+      delivery = idea.idea_deliveries.find_or_initialize_by(jira_key: key)
+      delivery.issue_type = target.dig("fields", "issuetype", "name")
+      delivery.save!
+      seen << key
+    end
+    idea.idea_deliveries.where.not(jira_key: seen).destroy_all
+  end
+
+  def select_field_value(raw)
+    return nil if raw.blank?
+    raw.is_a?(Hash) ? raw["value"] : raw.to_s
+  end
+
+  # Epics behind a "Now" idea that epic_query did not already return.
+  def fetch_roadmap_epics(delivery_keys, already_fetched)
+    missing = delivery_keys - already_fetched
+    return [] if missing.empty?
+
+    @client.search_all(
+      "key in (#{jira_key_list(missing)}) AND issuetype = Epic AND statusCategory != Done",
+      fields: EPIC_FIELDS, expand: "changelog"
+    )
+  rescue => e
+    Rails.logger.warn("[JiraSync] roadmap epic fetch failed: #{e.class}: #{e.message}")
+    []
+  end
 
   def upsert_epic(je, now)
     epic = Epic.find_or_initialize_by(jira_key: je.key)
