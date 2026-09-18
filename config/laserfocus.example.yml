@@ -25,6 +25,7 @@ board:
     - { jira_username: "alice", display_name: "Alice" }
     - { jira_username: "bob",   display_name: "Bob" }
   status_map:
+    "Open":        "new"
     "To Do":       "new"
     "In Progress": "in_progress"
     "In Review":   "review"
