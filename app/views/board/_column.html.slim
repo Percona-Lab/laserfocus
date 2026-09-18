@@ -8,8 +8,7 @@
 - done_count  = done_rows.size
 - middle_count = middle_rows.values.sum(&:size)
 - stale_count = column.middle_groups.values.flatten.count { |p| %i[somewhat really].include?(p.staleness) }
-- accent_palette = %w[#6366f1 #e11d48 #d97706 #0ea5e9 #8b5cf6 #0d9488 #10b981 #ea580c #c026d3 #64748b]
-- accent = accent_palette[(epic.jira_key.to_s.bytes.sum % accent_palette.size)]
+- accent = column_accent(epic.jira_key)
 - dist_buckets = ordered_display_states.map { |s| n = all_issues.count { |p| p.display_status == s[:id] }; [s, n] }.select { |_, n| n > 0 }
 
 section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-controller="stack" data-stack-todo-open-value="false" data-stack-done-open-value="false"
@@ -23,6 +22,10 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
         a.kb-col-name href=jira_url(epic.jira_key) target="_blank" rel="noreferrer" title=epic.name draggable="false"
           = epic.name
       span.kb-col-count= total
+      button.kb-col-fold-btn type="button" data-action="board#toggleCollapse" data-collapsed=(column.collapsed ? "1" : "0") title=(column.collapsed ? "Expand column (stored as collapsed)" : "Collapse column") aria-label=(column.collapsed ? "Expand column" : "Collapse column")
+        svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+          path d="M4.5 2 L1.5 6 L4.5 10"
+          path d="M10.5 2 L7.5 6 L10.5 10"
       button.kb-col-collapse-btn type="button" data-stack-target="collapseAllBtn" data-action="stack#toggleAll" data-open="1" title="Collapse all sections"
         svg.kb-col-compress width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
           path d="M2 3 L6 6 L10 3"
@@ -37,6 +40,9 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
       - if stale_count > 0
         span.kb-col-stale
           | ⚠ #{stale_count} stale
+      - if @presenter.expand_all? && column.collapsed
+        span.kb-col-collapsed-chip title="Stored as collapsed, shown expanded by ?expand_all"
+          | collapsed
       - unless epic.jira_key == "UNPLANNED"
         span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;margin-left:auto;" title=epic_avatar[:name]
           = epic_avatar[:initials]

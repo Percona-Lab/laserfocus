@@ -44,6 +44,8 @@ module BoardHelper
 
   AVATAR_PALETTE = %w[#6366f1 #0d9488 #e11d48 #ea580c #8b5cf6 #0284c7 #16a34a #b45309 #c026d3 #475569].freeze
 
+  COLUMN_ACCENT_PALETTE = %w[#6366f1 #e11d48 #d97706 #0ea5e9 #8b5cf6 #0d9488 #10b981 #ea580c #c026d3 #64748b].freeze
+
   GROUP_MODE_OPTIONS = {
     "staleness"  => { label: "Staleness",    hint: "Status groups ordered by most stale ticket" },
     "definition" => { label: "Status order", hint: "Status groups in configured (navbar) order" },
@@ -140,6 +142,10 @@ module BoardHelper
       idx = name.bytes.sum % AVATAR_PALETTE.size
       { initials: initials, color: AVATAR_PALETTE[idx], name: name }
     end
+  end
+
+  def column_accent(jira_key)
+    COLUMN_ACCENT_PALETTE[jira_key.to_s.bytes.sum % COLUMN_ACCENT_PALETTE.size]
   end
 
   def type_icon_svg(issue_type, size: 14)

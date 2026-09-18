@@ -1,0 +1,36 @@
+- epic = column.epic
+- new_count = column.new_issues.size
+- middle_issues = column.middle_groups.values.flatten
+- middle_count = middle_issues.size
+- done_count = column.done_issues.size
+- stale_count = middle_issues.count { |p| %i[somewhat really].include?(p.staleness) }
+- accent = column_accent(epic.jira_key)
+- new_meta = state_meta("new")
+- done_meta = state_meta("done")
+- middle_meta = state_meta("in_progress")
+- stale_note = stale_count > 0 ? " (#{stale_count} stale)" : ""
+
+section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-collapsed="1"
+  .kb-col-head draggable="true"
+    .kb-col-accent style="background:#{accent};"
+    button.kb-col-fold-btn type="button" data-action="board#toggleCollapse" data-collapsed="1" title="Expand column" aria-label="Expand column"
+      svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+        path d="M1.5 2 L4.5 6 L1.5 10"
+        path d="M7.5 2 L10.5 6 L7.5 10"
+    .kb-col-fold-counts role="img" aria-label="#{new_count} new, #{middle_count} in progress#{stale_note}, #{done_count} done"
+      span.kb-col-fold-count style="--kb-fold:#{new_meta[:deep]};--kb-fold-dark:#{new_meta[:color]};" title="#{new_meta[:label]}: #{new_count}"
+        = new_count
+      span.kb-col-fold-count style="--kb-fold:#{middle_meta[:deep]};--kb-fold-dark:#{middle_meta[:color]};" title="#{middle_meta[:label]}: #{middle_count}"
+        = middle_count
+        - if stale_count > 0
+          span.kb-col-fold-stale title="#{stale_count} stale"
+      span.kb-col-fold-count style="--kb-fold:#{done_meta[:deep]};--kb-fold-dark:#{done_meta[:color]};" title="#{done_meta[:label]}: #{done_count}"
+        = done_count
+    - if epic.jira_key == "UNPLANNED"
+      span.kb-col-fold-name title=epic.name
+        = epic.name
+    - else
+      a.kb-col-fold-name href=jira_url(epic.jira_key) target="_blank" rel="noreferrer" title=epic.name draggable="false"
+        = epic.name
+    - unless epic.jira_key == "UNPLANNED"
+      span.kb-col-fold-key= epic.jira_key

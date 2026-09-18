@@ -3,7 +3,8 @@ class BoardController < ApplicationController
 
   def show
     @group_mode = group_mode_from_cookie
-    @presenter = BoardPresenter.build(group_mode: @group_mode)
+    @expand_all = expand_all_param?
+    @presenter = BoardPresenter.build(group_mode: @group_mode, expand_all: @expand_all)
     @last_sync = SyncRun.ok.most_recent.first
     @activity_days = ACTIVITY_HIGHLIGHT_DAYS
   end
@@ -13,5 +14,9 @@ class BoardController < ApplicationController
   def group_mode_from_cookie
     raw = cookies[:board_group_mode].to_s
     BoardPresenter::GROUP_MODES.include?(raw) ? raw : BoardPresenter::DEFAULT_GROUP_MODE
+  end
+
+  def expand_all_param?
+    ActiveModel::Type::Boolean.new.cast(params[:expand_all]) || false
   end
 end

@@ -10,11 +10,13 @@ class BoardPresenterTest < ActiveSupport::TestCase
     "Done" => "done"
   }
 
-  def build_presenter(orphan_issues: [], column_order: [], group_mode: :staleness)
+  def build_presenter(orphan_issues: [], column_order: [], group_mode: :staleness, collapsed_keys: [], expand_all: false)
     BoardPresenter.new(
       epics: Epic.active.ordered.includes(:issues),
       orphan_issues: orphan_issues,
       column_order: column_order,
+      collapsed_keys: collapsed_keys,
+      expand_all: expand_all,
       group_mode: group_mode,
       status_map: STATUS_MAP,
       new_statuses: [ "new" ],
@@ -201,6 +203,39 @@ class BoardPresenterTest < ActiveSupport::TestCase
     epic1 = build_presenter(group_mode: :merged).columns.first
     assert_equal [ "PG-12" ], epic1.new_issues.map(&:jira_key)
     assert_equal [ "PG-13" ], epic1.done_issues.map(&:jira_key)
+  end
+
+  test "columns carry the stored collapsed flag" do
+    cols = build_presenter(collapsed_keys: %w[PG-2]).columns
+    assert_equal [ false, true ], cols.map(&:collapsed)
+  end
+
+  test "column_groups keeps expanded columns as singletons" do
+    groups = build_presenter.column_groups
+    assert_equal [ %w[PG-1], %w[PG-2] ], groups.map { |g| g.map { |c| c.epic.jira_key } }
+  end
+
+  test "column_groups stacks adjacent collapsed columns" do
+    groups = build_presenter(collapsed_keys: %w[PG-1 PG-2]).column_groups
+    assert_equal [ %w[PG-1 PG-2] ], groups.map { |g| g.map { |c| c.epic.jira_key } }
+  end
+
+  test "column_groups does not stack collapsed columns separated by an expanded one" do
+    orphan = Issue.new(
+      jira_key: "PG-99", summary: "Loose ticket", jira_status: "In Progress",
+      issue_type: "Task", created_at_jira: 2.days.ago, status_changed_at_jira: 1.day.ago
+    )
+    groups = build_presenter(orphan_issues: [ orphan ], column_order: %w[UNPLANNED PG-1 PG-2],
+                             collapsed_keys: %w[UNPLANNED PG-2]).column_groups
+    assert_equal [ %w[UNPLANNED], %w[PG-1], %w[PG-2] ], groups.map { |g| g.map { |c| c.epic.jira_key } }
+    assert_equal [ true, false, true ], groups.flatten.map(&:collapsed)
+  end
+
+  test "expand_all renders every column alone but keeps the stored flag" do
+    presenter = build_presenter(collapsed_keys: %w[PG-1 PG-2], expand_all: true)
+    assert presenter.expand_all?
+    assert_equal [ %w[PG-1], %w[PG-2] ], presenter.column_groups.map { |g| g.map { |c| c.epic.jira_key } }
+    assert_equal [ true, true ], presenter.columns.map(&:collapsed)
   end
 
   test "provisional orphan is surfaced in the unplanned new group" do

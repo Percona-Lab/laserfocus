@@ -78,4 +78,42 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_select ".kb-group-mode button[data-mode=staleness][data-on='1']", count: 1
     assert_select ".kb-group-mode button[data-mode=merged][data-on='0']", count: 1
   end
+
+  test "renders collapsed columns inside a stack" do
+    BoardOrder.instance.update!(column_order: %w[PG-1 PG-2], collapsed_columns: %w[PG-1 PG-2])
+    get root_path
+    assert_response :success
+    assert_select ".kb-col-stack", count: 1
+    assert_select ".kb-col-stack .kb-col[data-collapsed='1']", count: 2
+    assert_select "#kb-col-PG-1 .kb-card", count: 0
+  end
+
+  test "expand_all param renders collapsed columns open with a chip" do
+    BoardOrder.instance.update!(collapsed_columns: %w[PG-1])
+    get root_path, params: { expand_all: 1 }
+    assert_response :success
+    assert_select ".kb-col-stack", count: 0
+    assert_select "#kb-col-PG-1 .kb-card"
+    assert_select "#kb-col-PG-1 .kb-col-collapsed-chip", count: 1
+    assert_select "#kb-col-PG-2 .kb-col-collapsed-chip", count: 0
+    assert_select ".kb-expand-all-hint", count: 1
+    assert_select "#kb-col-PG-1[data-collapsed]", count: 0
+    assert_select "#kb-col-PG-1 .kb-col-fold-btn[data-collapsed='1']", count: 1
+    assert_equal %w[PG-1], BoardOrder.instance.reload.collapsed_columns
+  end
+
+  test "expand_all=0 is treated as off" do
+    BoardOrder.instance.update!(collapsed_columns: %w[PG-1])
+    get root_path, params: { expand_all: 0 }
+    assert_response :success
+    assert_select ".kb-col[data-collapsed='1']", count: 1
+    assert_select ".kb-expand-all-hint", count: 0
+  end
+
+  test "expand_all=false is treated as off" do
+    BoardOrder.instance.update!(collapsed_columns: %w[PG-1])
+    get root_path, params: { expand_all: "false" }
+    assert_response :success
+    assert_select ".kb-col[data-collapsed='1']", count: 1
+  end
 end

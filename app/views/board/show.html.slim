@@ -63,6 +63,10 @@
         | #{total_tickets} tickets ·
         span.stale= "#{total_stale} stale"
 
+      - if @expand_all
+        a.kb-expand-all-hint href=root_path title="Collapsed columns are shown expanded on this page. Click to go back to the stored layout."
+          | showing collapsed
+
       .kb-group-mode role="group" aria-label="Column grouping" data-controller="group-mode"
         - group_mode_options.each do |mode, opt|
           button.kb-act-pill type="button" data-action="group-mode#choose" data-mode=mode data-on=(@group_mode == mode ? "1" : "0") title=opt[:hint]
@@ -122,7 +126,12 @@
       = button_to "Logout", "/logout", method: :delete, form: { style: "display:inline;margin:0;" }, class: "kb-logout-btn"
 
   main.kb-board#board-root data-board-target="root"
-    - @presenter.columns.each do |col|
-      = render "board/column", column: col
+    - @presenter.column_groups.each do |group|
+      - if group.size == 1 && !@presenter.stacked?(group.first)
+        = render "board/column", column: group.first
+      - else
+        .kb-col-stack
+          - group.each do |col|
+            = render "board/column_collapsed", column: col
 
   div data-board-target="tooltip" class="kb-tt" hidden=true

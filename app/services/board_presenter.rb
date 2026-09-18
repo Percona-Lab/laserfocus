@@ -24,7 +24,7 @@ class BoardPresenter
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira
   end
 
-  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues) do
+  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed) do
     def all_issues
       new_issues + middle_groups.values.flatten + done_issues
     end
@@ -60,11 +60,14 @@ class BoardPresenter
   DEFAULT_GROUP_MODE = "staleness".freeze
   MERGED_GROUP = "merged".freeze
 
-  def self.build(config: LASER_FOCUS_CONFIG.board, group_mode: :staleness)
+  def self.build(config: LASER_FOCUS_CONFIG.board, group_mode: :staleness, expand_all: false)
+    order = BoardOrder.instance
     new(
       epics: Epic.active.ordered.includes(:issues),
       orphan_issues: Issue.active.orphan,
-      column_order: BoardOrder.instance.column_order,
+      column_order: order.column_order,
+      collapsed_keys: order.collapsed_columns,
+      expand_all: expand_all,
       group_mode: group_mode,
       status_map: config.status_map,
       new_statuses: config.new_statuses,
@@ -80,10 +83,13 @@ class BoardPresenter
     )
   end
 
-  def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:, orphan_issues: [], column_order: [], group_mode: :staleness)
+  def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:,
+                 orphan_issues: [], column_order: [], collapsed_keys: [], expand_all: false, group_mode: :staleness)
     @epics = epics
     @orphan_issues = orphan_issues
     @column_order = column_order
+    @collapsed_keys = collapsed_keys.to_set
+    @expand_all = !!expand_all
     @group_mode = group_mode.to_sym
     @status_map = status_map
     @new_statuses = new_statuses
@@ -99,6 +105,17 @@ class BoardPresenter
       cols << build_column(UNPLANNED_EPIC, orphans) if orphans.any?
       sort_columns(cols)
     end
+  end
+
+  def expand_all? = @expand_all
+
+  # Collapsed for real on this render (the override keeps stored-collapsed columns open).
+  def stacked?(column) = column.collapsed && !@expand_all
+
+  # Adjacent collapsed columns share one slot on the board, so the view gets
+  # them pre-chunked: [[expanded], [collapsed, collapsed], [expanded], ...]
+  def column_groups
+    @column_groups ||= columns.slice_when { |a, b| !(stacked?(a) && stacked?(b)) }.to_a
   end
 
   def configured_display_statuses
@@ -129,7 +146,7 @@ class BoardPresenter
     middle     = sorted - new_group - done_group
     middle_groups = group_middle(middle)
 
-    Column.new(epic, new_group, middle_groups, done_group)
+    Column.new(epic, new_group, middle_groups, done_group, @collapsed_keys.include?(epic.jira_key))
   end
 
   def group_middle(middle)
