@@ -1,0 +1,48 @@
+.kb-shell
+  header.kb-header
+    .kb-brand
+      = image_tag "/icon.png", alt: "", class: "kb-brand-logo"
+      span.kb-brand-name LaserFocus
+    .kb-view-tabs role="group" aria-label="View"
+      a.kb-act-pill href=root_path data-on="0" Board
+      a.kb-act-pill href=next_path data-on="1" Next
+    .kb-header-right
+      - if @configured
+        span.kb-counts
+          = "#{@presenter.rows.size} queued · #{@presenter.ready_count} ready to start"
+          - if @presenter.unlinked_count > 0
+            | &nbsp;·&nbsp;
+            span.stale= "#{@presenter.unlinked_count} with nothing in Jira"
+      span.kb-user= current_user_email
+      = button_to "Logout", "/logout", method: :delete, form: { style: "display:inline;margin:0;" }, class: "kb-logout-btn"
+
+  main.kb-next
+    - unless @configured
+      p.kb-next-empty No Jira Product Discovery roadmap is configured, so there is nothing to show here yet.
+    - if @configured && @presenter.rows.empty?
+      p.kb-next-empty Nothing sits in the roadmap's Next column right now.
+
+    - @presenter.rows.each_with_index do |row, i|
+      article.kb-next-row data-ready=(row.ready? ? "1" : "0")
+        .kb-next-rank= i + 1
+        .kb-next-main
+          .kb-next-head
+            a.kb-next-key href=jira_url(row.idea.jira_key) target="_blank" rel="noreferrer"= row.idea.jira_key
+            span.kb-next-summary= row.idea.summary
+            - if row.idea.incubator_status.present?
+              span.kb-next-stage= row.idea.incubator_status
+          .kb-next-deliveries
+            - if row.deliveries.empty?
+              span.kb-next-delivery.kb-next-delivery-missing nothing in Jira
+            - row.deliveries.each do |d|
+              a.kb-next-delivery href=jira_url(d.jira_key) target="_blank" rel="noreferrer" data-tracked=(d.tracked_epic? ? "1" : "0")
+                = d.jira_key
+                - if d.tracked_epic?
+                  span.kb-next-delivery-count= "#{d.ticket_count} #{'ticket'.pluralize(d.ticket_count)}"
+                - else
+                  span.kb-next-delivery-count= (d.issue_type.presence || "untracked")
+        .kb-next-readiness title="#{row.steps} of #{row.total_steps} readiness steps met"
+          .kb-next-steps aria-hidden="true"
+            - row.total_steps.times do |step|
+              span.kb-next-step data-on=(step < row.steps ? "1" : "0")
+          .kb-next-blocker= row.blocker || "Ready to start"

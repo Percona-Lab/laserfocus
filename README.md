@@ -8,6 +8,7 @@ LaserFocus polls JIRA on a schedule, stores a denormalized snapshot in SQLite, a
 - Board grouped by Epic (columns), plus an optional "Unplanned" column for orphan tickets.
 - Collapsible columns: fold a column into a narrow strip showing just the name and the new / in progress / done counts (plus a dot when something in progress is stale). Collapse state is shared by everyone, like column order, adjacent collapsed columns stack in one slot, and epics that first show up in a "new" status start collapsed. `/?expand_all=1` shows everything expanded without touching the stored state.
 - Roadmap alignment: reads the Jira Product Discovery project and shows, in one line above the board, how many "Now" commitments actually have a column. An epic behind a "Now" item joins the board even without the `Priority` label, and columns are tagged with the roadmap item, the `Ongoing` lane, or a "nothing started" flag.
+- A `/next` view: the roadmap's "Next" items ranked by readiness rather than progress — does a delivery epic exist, does it hold tickets, has it been committed — so it reads as a refinement queue instead of a second board.
 - Staleness highlighting: tickets get flagged "somewhat" and "really" stale after configurable day thresholds.
 - Adaptive polling: tight tick interval while someone is actively viewing the board, long interval otherwise.
 - Google OAuth login restricted to an allow-list of domains and/or individual emails.

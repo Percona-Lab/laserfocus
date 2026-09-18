@@ -5,7 +5,6 @@ class BoardController < ApplicationController
     @group_mode = group_mode_from_cookie
     @expand_all = expand_all_param?
     @presenter = BoardPresenter.build(group_mode: @group_mode, expand_all: @expand_all)
-    @alignment = @presenter.alignment
     @last_sync = SyncRun.ok.most_recent.first
     @activity_days = ACTIVITY_HIGHLIGHT_DAYS
   end

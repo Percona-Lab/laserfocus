@@ -810,3 +810,66 @@ a.kb-col-fold-name:hover { text-decoration: underline; }
 [data-theme="dark"] .kb-col-tag-ongoing { background: #123632; color: #5eead4; }
 .kb-col-tag-flag { background: #fef0e7; color: #c2410c; }
 [data-theme="dark"] .kb-col-tag-flag { background: #2a2317; color: #f0a860; }
+
+/* ---------- Next view ----------
+   A refinement queue, not a second board: the question is whether we could
+   start, so readiness is the only thing given visual weight. */
+.kb-view-tabs { display: flex; gap: 4px; align-items: center; }
+a.kb-act-pill { text-decoration: none; display: inline-flex; align-items: center; }
+
+.kb-next {
+  flex: 1; min-height: 0; overflow: auto;
+  padding: 16px 20px 28px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.kb-next-empty { font: 500 13px var(--kb-ui); color: var(--kb-text-mute); }
+
+.kb-next-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 12px 16px;
+  background: var(--kb-surface);
+  border: 1px solid var(--kb-border);
+  border-left: 4px solid #94a3b8;
+  border-radius: 10px;
+}
+.kb-next-row[data-ready="1"] { border-left-color: #22c55e; }
+.kb-next-rank {
+  flex: 0 0 auto; width: 22px;
+  font: 700 13px var(--kb-ui); color: var(--kb-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.kb-next-main { flex: 1 1 auto; min-width: 0; }
+.kb-next-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.kb-next-key { font: 600 11px var(--kb-mono); color: var(--kb-text-mute); text-decoration: none; }
+.kb-next-key:hover { text-decoration: underline; }
+.kb-next-summary { font: 700 13.5px var(--kb-ui); color: var(--kb-text); }
+.kb-next-stage {
+  font: 700 9.5px var(--kb-ui); letter-spacing: .3px;
+  border-radius: 4px; padding: 1px 6px;
+  background: var(--kb-stack-bg); color: var(--kb-text-mute);
+}
+.kb-next-deliveries { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 5px; }
+.kb-next-delivery {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font: 600 10.5px var(--kb-mono); text-decoration: none;
+  border: 1px solid var(--kb-border-strong); border-radius: 20px;
+  padding: 2px 9px; color: var(--kb-text-soft);
+}
+.kb-next-delivery[data-tracked="1"] { border-color: #93b4f3; color: #1d4ed8; background: #eff5ff; }
+[data-theme="dark"] .kb-next-delivery[data-tracked="1"] { border-color: #3b5aa3; color: #93b4f3; background: #1d2a44; }
+.kb-next-delivery-count { font: 600 10px var(--kb-ui); opacity: .75; }
+.kb-next-delivery-missing { color: #c2410c; border-color: #f3c98a; background: #fef0e7; font-family: var(--kb-ui); }
+[data-theme="dark"] .kb-next-delivery-missing { color: #f0a860; border-color: #6b4a1b; background: #2a2317; }
+
+.kb-next-readiness { flex: 0 0 auto; width: 210px; text-align: right; }
+.kb-next-steps { display: flex; gap: 3px; justify-content: flex-end; }
+.kb-next-step { width: 22px; height: 5px; border-radius: 2px; background: var(--kb-dist-track); }
+.kb-next-step[data-on="1"] { background: #22c55e; }
+.kb-next-blocker { margin-top: 6px; font: 600 11.5px var(--kb-ui); color: var(--kb-text-soft); }
+.kb-next-row[data-ready="1"] .kb-next-blocker { color: #15803d; }
+
+@media (max-width: 800px) {
+  .kb-next-row { flex-wrap: wrap; }
+  .kb-next-readiness { width: 100%; text-align: left; }
+  .kb-next-steps { justify-content: flex-start; }
+}

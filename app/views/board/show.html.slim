@@ -67,6 +67,10 @@
         a.kb-expand-all-hint href=root_path title="Collapsed columns are shown expanded on this page. Click to go back to the stored layout."
           | showing collapsed
 
+      .kb-view-tabs role="group" aria-label="View"
+        a.kb-act-pill href=root_path data-on="1" Board
+        a.kb-act-pill href=next_path data-on="0" Next
+
       .kb-group-mode role="group" aria-label="Column grouping" data-controller="group-mode"
         - group_mode_options.each do |mode, opt|
           button.kb-act-pill type="button" data-action="group-mode#choose" data-mode=mode data-on=(@group_mode == mode ? "1" : "0") title=opt[:hint]
