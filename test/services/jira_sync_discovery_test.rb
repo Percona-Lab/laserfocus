@@ -184,4 +184,21 @@ class JiraSyncDiscoveryTest < ActiveSupport::TestCase
     assert_equal 0, DiscoveryIdea.count
     assert_equal %w[PG-1], Epic.active.pluck(:jira_key)
   end
+
+  test "warns when a configured query matches nothing" do
+    stub_search { |_q| page([]) }
+
+    io = StringIO.new
+    original = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(io)
+    begin
+      run_sync
+    ensure
+      Rails.logger = original
+    end
+
+    assert_includes io.string, "discovery 'now' matched no ideas"
+    assert_includes io.string, "discovery 'next' matched no ideas"
+    assert_includes io.string, "can browse the project"
+  end
 end

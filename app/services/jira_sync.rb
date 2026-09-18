@@ -227,9 +227,16 @@ class JiraSync
 
     seen = []
     @discovery.queries.each do |horizon, jql|
-      @client.search_all(jql, fields: @discovery.issue_fields).each do |ji|
-        seen << upsert_idea(ji, horizon, now).jira_key
+      ideas = @client.search_all(jql, fields: @discovery.issue_fields)
+      # Jira hands back an empty result rather than an error for a project the
+      # credential cannot browse, so a configured query returning nothing is
+      # worth saying out loud -- it usually means the API token cannot see the
+      # discovery project, not that the roadmap is empty.
+      if ideas.empty?
+        Rails.logger.warn("[JiraSync] discovery '#{horizon}' matched no ideas. " \
+                          "Check the API token can browse the project: #{jql}")
       end
+      ideas.each { |ji| seen << upsert_idea(ji, horizon, now).jira_key }
     end
     DiscoveryIdea.active.where.not(jira_key: seen).update_all(removed_at: now)
 
