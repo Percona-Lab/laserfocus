@@ -59,9 +59,9 @@ class AlignmentCalculator
           next if column.nil? || column.middle_count.positive?
 
           Finding.new(kind: :not_started, severity: :high, key: key,
-                      headline: "Committed, nothing started",
-                      detail: "#{idea.jira_key} sits in Now but every one of #{key}'s " \
-                              "#{column.new_count} open tickets is still waiting.")
+                      headline: "Committed, nothing in flight",
+                      detail: "#{idea.jira_key} sits in Now, but no #{key} ticket is in " \
+                              "progress or review right now (#{tally(column)}).")
         end
       end
     end
@@ -78,9 +78,20 @@ class AlignmentCalculator
                     detail: "#{epic.name} is being worked on with nothing in the roadmap behind it.")
       elsif epic.respond_to?(:in_progress?) && epic.in_progress? && column.middle_count.zero? && column.total_count.positive?
         Finding.new(kind: :status_drift, severity: :medium, key: epic.jira_key,
-                    headline: "Epic says In Progress",
-                    detail: "#{epic.name} claims to be in progress, but none of its tickets have started.")
+                    headline: "In Progress, nothing in flight",
+                    detail: "#{epic.name} is marked In Progress, but no ticket is in progress " \
+                            "or review right now (#{tally(column)}).")
       end
     end
+  end
+
+  # What the column actually holds, so a finding reports the snapshot instead of
+  # implying the work never started. Finished tickets are the usual reason a
+  # column reads as idle without being untouched.
+  def tally(column)
+    parts = []
+    parts << "#{column.done_count} done" if column.done_count.positive?
+    parts << "#{column.new_count} waiting" if column.new_count.positive?
+    parts.empty? ? "no tickets at all" : parts.join(", ")
   end
 end

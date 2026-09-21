@@ -65,14 +65,14 @@ class AlignmentCalculatorTest < ActiveSupport::TestCase
     assert_includes finding.detail, "PG-2425"
   end
 
-  test "flags a Now item on the board with nothing started" do
+  test "flags a Now item on the board with nothing in flight" do
     committed = idea("PGR-3", %w[PG-3])
     calc = AlignmentCalculator.new(columns: [ column("PG-3", new: 10, idea: committed) ],
                                    now_ideas: [ committed ])
     finding = calc.findings.find { |f| f.kind == :not_started }
 
     assert_equal "PG-3", finding.key
-    assert_includes finding.detail, "10 open tickets"
+    assert_includes finding.detail, "10 waiting"
   end
 
   test "flags a focus column with no roadmap item behind it" do
@@ -96,7 +96,7 @@ class AlignmentCalculatorTest < ActiveSupport::TestCase
     assert_empty calc.findings.select { |f| f.kind == :unbacked }
   end
 
-  test "flags an epic claiming progress with nothing started" do
+  test "flags an epic marked In Progress with nothing in flight" do
     backed = idea("PGR-1", %w[PG-1])
     calc = AlignmentCalculator.new(
       columns: [ column("PG-1", middle: 1, idea: backed),
@@ -107,6 +107,21 @@ class AlignmentCalculatorTest < ActiveSupport::TestCase
 
     assert_equal "PG-5", finding.key
     assert_equal :medium, finding.severity
+    assert_includes finding.detail, "5 waiting"
+  end
+
+  # The case that made the old wording wrong: the epic has a history of finished
+  # work, so "nothing has started" was a lie. The note has to say so.
+  test "an idle epic with finished work reports what it already did" do
+    backed = idea("PGR-1", %w[PG-1])
+    calc = AlignmentCalculator.new(
+      columns: [ column("PG-1", new: 2, done: 7, in_progress: true, idea: backed) ],
+      now_ideas: [ backed ]
+    )
+    finding = calc.findings.find { |f| f.kind == :status_drift }
+
+    assert_includes finding.detail, "7 done, 2 waiting"
+    refute_includes finding.detail, "have started"
   end
 
   test "findings come back worst first" do
