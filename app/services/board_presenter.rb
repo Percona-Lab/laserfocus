@@ -36,6 +36,10 @@ class BoardPresenter
 
     def merged_middle? = middle_groups.key?(BoardPresenter::MERGED_GROUP)
 
+    # The catch-all column for issues without an epic. It stands for work that
+    # by definition was never planned, so roadmap checks skip it.
+    def unplanned? = epic.jira_key == BoardPresenter::UNPLANNED_EPIC.jira_key
+
     def issue_rows_for(postits)
       issue_keys = Set.new(postits.map(&:jira_key))
       children_by_parent = Hash.new { |h, k| h[k] = [] }

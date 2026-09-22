@@ -96,6 +96,15 @@ class AlignmentCalculatorTest < ActiveSupport::TestCase
     assert_empty calc.findings.select { |f| f.kind == :unbacked }
   end
 
+  test "does not flag the unplanned column for missing a roadmap item" do
+    backed = idea("PGR-1", %w[PG-1])
+    calc = AlignmentCalculator.new(
+      columns: [ column("PG-1", middle: 1, idea: backed), column("UNPLANNED", middle: 2) ],
+      now_ideas: [ backed ]
+    )
+    assert_empty calc.findings.select { |f| f.kind == :unbacked }
+  end
+
   test "flags an epic marked In Progress with nothing in flight" do
     backed = idea("PGR-1", %w[PG-1])
     calc = AlignmentCalculator.new(

@@ -71,6 +71,7 @@ class AlignmentCalculator
     @columns.filter_map do |column|
       epic = column.epic
       next if column.lane == :ongoing
+      next if column.unplanned?
 
       if column.lane == :focus && column.roadmap_idea.nil?
         Finding.new(kind: :unbacked, severity: :low, key: epic.jira_key,
