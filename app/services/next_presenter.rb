@@ -9,9 +9,14 @@ class NextPresenter
     def tracked_epic? = epic.present?
   end
 
-  Row = Struct.new(:idea, :deliveries, :steps, :blocker, keyword_init: true) do
+  # One readiness step as the column shows it: :done, :current (the first one
+  # not met, where the work is) or :todo (waiting behind it).
+  Step = Struct.new(:label, :state, :detail, :jira_key, keyword_init: true)
+
+  Row = Struct.new(:idea, :deliveries, :steps, :blocker, :checklist, keyword_init: true) do
     def ready? = blocker.nil?
     def total_steps = TOTAL_STEPS
+    def steps_met = checklist.count { |step| step.state == :done }
   end
 
   def self.build
@@ -44,7 +49,40 @@ class NextPresenter
   def build_row(idea)
     deliveries = idea.idea_deliveries.map { |d| build_delivery(d) }
     steps, blocker = score(idea, deliveries)
-    Row.new(idea: idea, deliveries: deliveries, steps: steps, blocker: blocker)
+    Row.new(idea: idea, deliveries: deliveries, steps: steps, blocker: blocker,
+            checklist: checklist(idea, deliveries))
+  end
+
+  # The same four steps as the score, but each judged on its own, so an item
+  # already Committed in the roadmap shows that even while it still waits for
+  # a delivery epic. The first step not met is where the work is.
+  def checklist(idea, deliveries)
+    tracked = deliveries.select(&:tracked_epic?)
+    tickets = tracked.sum(&:ticket_count)
+    epic_key = tracked.first&.jira_key || deliveries.first&.jira_key
+    status = idea.incubator_status.presence
+    rows = [
+      [ "Delivery ticket", deliveries.any?, deliveries.map(&:jira_key).to_sentence,
+        "Link a delivery epic to #{idea.jira_key} in Product Discovery", idea.jira_key ],
+      [ "Epic on the board", tracked.any?, tracked.map(&:jira_key).to_sentence,
+        not_on_board_hint(deliveries), epic_key ],
+      [ "Tickets under the epic", tickets.positive?, "#{tickets} #{'ticket'.pluralize(tickets)}",
+        "Break #{epic_key || 'the epic'} down into stories and tasks", epic_key ],
+      [ "Committed", READY_STATUSES.include?(status), status,
+        "Still #{status || 'not staged'}, move it to Committed", idea.jira_key ]
+    ]
+    current = rows.index { |row| !row[1] }
+    rows.each_with_index.map do |(label, met, done_detail, todo_detail, key), i|
+      state = if met then :done elsif i == current then :current else :todo end
+      Step.new(label: label, state: state, detail: met ? done_detail : todo_detail, jira_key: key)
+    end
+  end
+
+  def not_on_board_hint(deliveries)
+    return "Needs a delivery epic with the Priority label" if deliveries.empty?
+
+    reason = untracked_blocker(deliveries)
+    reason.end_with?("not on the board") ? "#{reason}. Add the Priority label" : reason
   end
 
   def build_delivery(delivery)

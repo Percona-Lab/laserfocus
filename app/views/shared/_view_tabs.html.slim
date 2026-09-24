@@ -1,0 +1,7 @@
+/ The same tabs on every view, so switching never moves the header around.
+- current = local_assigns.fetch(:current)
+.kb-view-tabs role="group" aria-label="View"
+  a.kb-act-pill href=root_path data-on=(current == :board ? "1" : "0") Board
+  - if LASER_FOCUS_CONFIG.board.community_label.present?
+    a.kb-act-pill href=community_path data-on=(current == :community ? "1" : "0") Community
+  a.kb-act-pill href=next_path data-on=(current == :next ? "1" : "0") Next

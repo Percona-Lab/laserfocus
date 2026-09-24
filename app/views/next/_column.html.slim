@@ -1,0 +1,40 @@
+- idea = row.idea
+- accent = column_accent(idea.jira_key)
+- steps = row.checklist
+- step_meta = { done: state_meta("done"), current: state_meta("in_progress"), todo: state_meta("new") }
+
+section.kb-col.kb-next-col id="kb-next-#{idea.jira_key}" data-ready=(row.ready? ? "1" : "0")
+  .kb-col-head
+    .kb-col-accent style="background:#{accent};"
+    .kb-col-title-row
+      a.kb-col-name href=jira_url(idea.jira_key) target="_blank" rel="noreferrer" title=idea.summary
+        = idea.summary
+      span.kb-col-count title="#{row.steps_met} of #{row.total_steps} readiness steps met"
+        = "#{row.steps_met}/#{row.total_steps}"
+    .kb-col-meta
+      span.kb-next-col-rank title="Rank in the roadmap's Next column"= "##{rank}"
+      span.kb-col-key= idea.jira_key
+    .kb-col-tags
+      - if row.ready?
+        span.kb-col-tag.kb-col-tag-ready ready to start
+      - if idea.incubator_status.present?
+        span.kb-col-tag= idea.incubator_status
+    .kb-dist aria-hidden="true"
+      - steps.each do |step|
+        span style="flex:1;background:#{step.state == :done ? step_meta[:done][:color] : 'transparent'};"
+
+  .kb-col-body
+    - steps.each_with_index do |step, i|
+      - meta = step_meta[step.state]
+      - href = step.jira_key.present? ? jira_url(step.jira_key) : jira_url(idea.jira_key)
+      a.kb-card.kb-step-card href=href target="_blank" rel="noreferrer" data-step=step.state style="--kb-state-color:#{meta[:color]};"
+        .kb-card-row1
+          span.kb-step-mark aria-hidden="true"
+            - if step.state == :done
+              svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                path d="M2.5 6.3L5 8.8L9.8 3.6"
+            - else
+              = i + 1
+          span.kb-card-id= step.label
+        - if step.detail.present?
+          .kb-card-title= step.detail

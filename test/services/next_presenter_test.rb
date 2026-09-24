@@ -88,4 +88,34 @@ class NextPresenterTest < ActiveSupport::TestCase
     DiscoveryIdea.create!(jira_key: "PGR-9", summary: "Now item", horizon: "now")
     assert_empty NextPresenter.build.rows
   end
+
+  test "the checklist points at the first missing step and waits on the rest" do
+    idea("PGR-1", incubator: "Discovery", deliveries: [])
+    states = NextPresenter.build.rows.first.checklist.map(&:state)
+    assert_equal %i[current todo todo todo], states
+  end
+
+  test "the checklist judges each step on its own" do
+    idea("PGR-2", incubator: "Committed", deliveries: [])
+    row = NextPresenter.build.rows.first
+    assert_equal %i[current todo todo done], row.checklist.map(&:state)
+    assert_equal 1, row.steps_met
+    assert_equal 0, row.steps
+  end
+
+  test "an epic that is not on the board asks for the Priority label" do
+    idea("PGR-6", deliveries: [ { key: "PG-1572", type: "Epic" } ])
+    step = NextPresenter.build.rows.first.checklist.second
+    assert_equal :current, step.state
+    assert_equal "PG-1572 is not on the board. Add the Priority label", step.detail
+    assert_equal "PG-1572", step.jira_key
+  end
+
+  test "a ready idea has every step done" do
+    idea("PGR-9", deliveries: [ { key: "PG-1", type: "Epic" } ])
+    row = NextPresenter.build.rows.first
+    assert row.ready?
+    assert_equal [ :done ] * 4, row.checklist.map(&:state)
+    assert_match(/ticket/, row.checklist.third.detail)
+  end
 end
