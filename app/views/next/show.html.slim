@@ -4,21 +4,22 @@
       = image_tag "/icon.png", alt: "", class: "kb-brand-logo"
       span.kb-brand-name LaserFocus
 
+    = render "shared/header_filters", enabled: false
+
     .kb-header-right
-      - if @configured
-        span.kb-counts
-          = "#{@presenter.rows.size} queued · #{@presenter.ready_count} ready to start"
+      / Always rendered, empty without a roadmap, so it holds the same room as
+      / on the board.
+      - full = "#{@presenter.rows.size} queued · #{@presenter.ready_count} ready to start · #{@presenter.unlinked_count} with nothing in Jira"
+      span.kb-counts title=(@configured ? full : nil)
+        - if @configured
+          = "#{@presenter.rows.size} queued · #{@presenter.ready_count} ready"
           - if @presenter.unlinked_count > 0
             | &nbsp;·&nbsp;
-            span.stale= "#{@presenter.unlinked_count} with nothing in Jira"
+            span.stale= "#{@presenter.unlinked_count} not in Jira"
 
       = render "shared/view_tabs", current: :next
 
-      = render "board/stale_banner", last_sync: @last_sync
-      = render "shared/display_toggles"
-
-      span.kb-user= current_user_email
-      = button_to "Logout", "/logout", method: :delete, form: { style: "display:inline;margin:0;" }, class: "kb-logout-btn"
+      = render "shared/header_tools", enabled: false, assignees: [], last_sync: @last_sync, warnings: @warnings
 
   - unless @configured
     p.kb-next-empty No Jira Product Discovery roadmap is configured, so there is nothing to show here yet.

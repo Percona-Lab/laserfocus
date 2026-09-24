@@ -1,0 +1,47 @@
+/ The filters left of the counts. Next renders them switched off, like the
+/ controls in shared/header_tools, so the header wraps the same on every view.
+- off_hint = "Only on Board and Community"
+.kb-filter-wrap data-controller=(enabled ? "filter-dropdown" : nil) data-action=(enabled ? "click@window->filter-dropdown#closeIfOutside" : nil)
+  button.kb-filter-btn type="button" data-action=(enabled ? "filter-dropdown#toggle" : nil) data-board-target="statusFilterBtn" data-on="0" aria-label="Filter by status" disabled=!enabled title=(enabled ? nil : off_hint)
+    span.kb-filter-dots
+    | Status
+    svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
+      path d="M1 2.5L4 5.5L7 2.5"
+  - if enabled
+    .kb-filter-menu data-filter-dropdown-target="menu" hidden=true
+      - @presenter.configured_display_statuses.each do |id|
+        - s = state_meta(id)
+        button.kb-filter-row type="button" data-board-target="statusPill" data-action="board#toggleStatus" data-state=s[:id] data-color=s[:color] data-on="0"
+          span.kb-filter-row-dot style="background:#{s[:color]};"
+          span.kb-filter-row-label= s[:label]
+          svg.kb-filter-check width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+            path d="M2.5 6.5L5.2 9.2L10.5 3.8"
+      .kb-filter-divider
+      button.kb-filter-clear type="button" data-board-target="statusClear" data-action="board#clearStatuses" hidden=true
+        | ✕ Clear selection
+
+.kb-filter-wrap data-controller=(enabled ? "filter-dropdown" : nil) data-action=(enabled ? "click@window->filter-dropdown#closeIfOutside" : nil)
+  button.kb-filter-btn type="button" data-action=(enabled ? "filter-dropdown#toggle" : nil) data-board-target="activityFilterBtn" data-on="0" aria-label="Filter by activity" disabled=!enabled title=(enabled ? nil : off_hint)
+    span.kb-filter-badge hidden=true
+    | Activity
+    svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
+      path d="M1 2.5L4 5.5L7 2.5"
+  - if enabled
+    .kb-filter-menu data-filter-dropdown-target="menu" hidden=true
+      p.kb-filter-section-label Direction
+      .kb-filter-seg
+        button.kb-filter-seg-btn type="button" data-board-target="activityPill" data-action="board#toggleActivity" data-dir="newer" data-on="0"
+          | Updated within
+        button.kb-filter-seg-btn type="button" data-board-target="activityPill" data-action="board#toggleActivity" data-dir="older" data-on="0"
+          | Not updated in
+      p.kb-filter-section-label Time range
+      .kb-filter-days
+        - @activity_days.each do |days|
+          button.kb-filter-day-btn type="button" data-board-target="activityPill" data-action="board#toggleActivity" data-days=days data-on="0"
+            | #{days}d
+      .kb-filter-divider
+      button.kb-filter-clear type="button" data-board-target="activityClear" data-action="board#clearActivity" hidden=true
+        | ✕ Clear
+
+button.kb-ghost-btn type="button" data-board-target="ghostEpicBtn" data-action=(enabled ? "board#toggleGhostEpic" : nil) data-on="0" disabled=!enabled title=(enabled ? "Unplanned tickets that belong to an EPIC without a Priority label — work happening outside agreed team goals" : off_hint)
+  | 👻

@@ -6,6 +6,9 @@ class BoardController < ApplicationController
     @expand_all = expand_all_param?
     @view = params[:view] == "community" ? :community : :board
     @presenter = BoardPresenter.build(group_mode: @group_mode, expand_all: @expand_all, view: @view)
+    # Unmapped statuses are a config problem for the whole board, so every view
+    # shows the same count (which also keeps the header, and the tabs, put).
+    @warnings = @view == :board ? @presenter.warnings : BoardPresenter.build.warnings
     @last_sync = SyncRun.ok.most_recent.first
     @activity_days = ACTIVITY_HIGHLIGHT_DAYS
   end
