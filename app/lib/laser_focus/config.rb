@@ -124,7 +124,12 @@ module LaserFocus
       def new_statuses  = @h["new_statuses"]
       # Epics carrying this label are continuous work: they never finish, so the
       # board treats them as a lane of their own rather than as stalled focus.
+      # A single label or a list, so a team can move epics from one label to
+      # another without the lane flickering in between.
       def ongoing_label = @h["ongoing_label"]
+      # Epics carrying this label also get the Community view. Leave it out to
+      # hide that tab.
+      def community_label = @h["community_label"]
       def done_statuses = @h["done_statuses"]
       def staleness  = OpenStruct.new(@h["staleness"])
       def ignore_staleness_for_new_issues

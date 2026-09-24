@@ -24,7 +24,7 @@ class BoardPresenter
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira
   end
 
-  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea) do
+  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea, :community) do
     def new_count    = new_issues.size
     def middle_count = middle_groups.values.sum(&:size)
     def done_count   = done_issues.size
@@ -69,11 +69,14 @@ class BoardPresenter
   DEFAULT_GROUP_MODE = "staleness".freeze
   MERGED_GROUP = "merged".freeze
 
-  def self.build(config: LASER_FOCUS_CONFIG.board, group_mode: :staleness, expand_all: false)
+  def self.build(config: LASER_FOCUS_CONFIG.board, group_mode: :staleness, expand_all: false,
+                 view: :board, epics: Epic.active.ordered.includes(:issues))
     order = BoardOrder.instance
     new(
-      epics: Epic.active.ordered.includes(:issues),
+      epics: epics,
+      view: view,
       ongoing_label: config.ongoing_label,
+      community_label: config.community_label,
       now_ideas: DiscoveryIdea.now.includes(:idea_deliveries).to_a,
       orphan_issues: Issue.active.orphan,
       column_order: order.column_order,
@@ -96,11 +99,16 @@ class BoardPresenter
 
   def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:,
                  orphan_issues: [], column_order: [], collapsed_keys: [], expand_all: false,
-                 ongoing_label: nil, now_ideas: [], group_mode: :staleness)
-    @epics = epics
-    @orphan_issues = orphan_issues
+                 ongoing_label: nil, community_label: nil, view: :board, now_ideas: [],
+                 group_mode: :staleness)
+    @view = view.to_sym
+    @community_label = community_label
     @ongoing_label = ongoing_label
-    @now_ideas = now_ideas
+    @epics = community? ? epics.select { |e| community_epic?(e) } : epics
+    # Orphan tickets have no epic to carry the label, so the Community view
+    # has no Unplanned column.
+    @orphan_issues = community? ? [] : orphan_issues
+    @now_ideas = community? ? now_ideas.select { |i| i.idea_deliveries.any? { |d| community_key?(d.jira_key) } } : now_ideas
     @column_order = column_order
     @collapsed_keys = collapsed_keys.to_set
     @expand_all = !!expand_all
@@ -124,6 +132,9 @@ class BoardPresenter
   def expand_all? = @expand_all
 
   def now_ideas = @now_ideas
+
+  def community? = @view == :community
+  def community_enabled? = @community_label.present?
 
   def alignment
     @alignment ||= AlignmentCalculator.new(columns: columns, now_ideas: @now_ideas)
@@ -165,6 +176,15 @@ class BoardPresenter
 
   private
 
+  def community_epic?(epic)
+    community_enabled? && epic.respond_to?(:labelled?) && epic.labelled?(@community_label)
+  end
+
+  def community_key?(jira_key)
+    @community_keys ||= @epics.select { |e| community_epic?(e) }.map(&:jira_key).to_set
+    @community_keys.include?(jira_key)
+  end
+
   def ideas_by_delivery_key
     @ideas_by_delivery_key ||= @now_ideas.each_with_object({}) do |idea, map|
       idea.idea_deliveries.each { |d| map[d.jira_key] ||= idea }
@@ -192,7 +212,8 @@ class BoardPresenter
       epic, new_group, middle_groups, done_group,
       @collapsed_keys.include?(epic.jira_key),
       lane_for(epic, middle_groups),
-      roadmap_idea_for(epic.jira_key)
+      roadmap_idea_for(epic.jira_key),
+      community_epic?(epic)
     )
   end
 

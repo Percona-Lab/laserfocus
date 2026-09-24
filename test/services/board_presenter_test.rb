@@ -11,7 +11,8 @@ class BoardPresenterTest < ActiveSupport::TestCase
   }
 
   def build_presenter(orphan_issues: [], column_order: [], group_mode: :staleness, collapsed_keys: [],
-                      expand_all: false, ongoing_label: nil, now_ideas: [])
+                      expand_all: false, ongoing_label: nil, now_ideas: [],
+                      community_label: nil, view: :board)
     BoardPresenter.new(
       epics: Epic.active.ordered.includes(:issues),
       orphan_issues: orphan_issues,
@@ -19,6 +20,8 @@ class BoardPresenterTest < ActiveSupport::TestCase
       collapsed_keys: collapsed_keys,
       expand_all: expand_all,
       ongoing_label: ongoing_label,
+      community_label: community_label,
+      view: view,
       now_ideas: now_ideas,
       group_mode: group_mode,
       status_map: STATUS_MAP,
@@ -309,5 +312,43 @@ class BoardPresenterTest < ActiveSupport::TestCase
     idea = now_idea("PGR-1", %w[PG-1])
     col = build_presenter(now_ideas: [ idea ]).columns.find { |c| c.epic.jira_key == "PG-2" }
     assert_nil col.roadmap_idea
+  end
+
+  test "ongoing_label takes a list, so either label makes the lane" do
+    epics(:priority_one).update!(raw_fields: { "labels" => [ "Community" ] })
+    col = build_presenter(ongoing_label: %w[Ongoing Community]).columns.find { |c| c.epic.jira_key == "PG-1" }
+    assert_equal :ongoing, col.lane
+  end
+
+  # ---------- community ----------
+
+  test "the board keeps every epic and tags the community ones" do
+    epics(:priority_one).update!(raw_fields: { "labels" => [ "Priority", "Community" ] })
+    cols = build_presenter(community_label: "Community").columns
+    assert_equal %w[PG-1 PG-2], cols.map { |c| c.epic.jira_key }
+    assert_equal [ true, false ], cols.map(&:community)
+  end
+
+  test "the community view keeps only the labelled epics and drops Unplanned" do
+    epics(:priority_two).update!(raw_fields: { "labels" => [ "Community" ] })
+    orphan = Issue.new(jira_key: "PG-99", summary: "Loose ticket", jira_status: "In Progress",
+                       issue_type: "Task", created_at_jira: 2.days.ago, status_changed_at_jira: 1.day.ago)
+    presenter = build_presenter(community_label: "Community", view: :community, orphan_issues: [ orphan ])
+    assert_equal %w[PG-2], presenter.columns.map { |c| c.epic.jira_key }
+  end
+
+  test "the community view only counts Now items that deliver into community epics" do
+    epics(:priority_two).update!(raw_fields: { "labels" => [ "Community" ] })
+    ours = now_idea("PGR-1", %w[PG-2])
+    theirs = now_idea("PGR-2", %w[PG-1])
+    presenter = build_presenter(community_label: "Community", view: :community, now_ideas: [ ours, theirs ])
+    assert_equal %w[PGR-1], presenter.now_ideas.map(&:jira_key)
+  end
+
+  test "without a community label nothing is tagged and the view is off" do
+    epics(:priority_one).update!(raw_fields: { "labels" => [ "Community" ] })
+    presenter = build_presenter
+    refute presenter.community_enabled?
+    assert presenter.columns.none?(&:community)
   end
 end

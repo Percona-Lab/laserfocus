@@ -18,8 +18,11 @@ class Epic < ApplicationRecord
     Array((raw_fields || {})["labels"]).filter_map { |l| l.to_s.presence }
   end
 
-  def ongoing?(label)
-    label.present? && labels.include?(label)
+  def ongoing?(label) = labelled?(label)
+
+  # True when the epic carries any of the given labels (a string or a list).
+  def labelled?(label)
+    (Array(label).compact_blank & labels).any?
   end
 
   def assignee_name

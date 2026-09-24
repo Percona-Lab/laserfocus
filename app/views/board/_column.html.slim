@@ -49,11 +49,14 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
       - unless epic.jira_key == "UNPLANNED"
         span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;margin-left:auto;" title=epic_avatar[:name]
           = epic_avatar[:initials]
-    - if column.roadmap_idea || column.lane == :ongoing || not_started
+    - if column.roadmap_idea || column.lane == :ongoing || column.community || not_started
       .kb-col-tags
         - if column.roadmap_idea
           a.kb-col-tag.kb-col-tag-now href=jira_url(column.roadmap_idea.jira_key) target="_blank" rel="noreferrer" title=column.roadmap_idea.summary
             = "#{column.roadmap_idea.jira_key} · Now"
+        - if column.community
+          span.kb-col-tag.kb-col-tag-community title="Community work: also shown on the Community view"
+            | community
         - if column.lane == :ongoing
           span.kb-col-tag.kb-col-tag-ongoing title="Continuous work: this epic never finishes"
             | ongoing

@@ -8,6 +8,7 @@ LaserFocus polls JIRA on a schedule, stores a denormalized snapshot in SQLite, a
 - Board grouped by Epic (columns), plus an optional "Unplanned" column for orphan tickets.
 - Collapsible columns: fold a column into a narrow strip showing just the name and the new / in progress / done counts (plus a dot when something in progress is stale). Collapse state is shared by everyone, like column order, and adjacent collapsed columns stack in one slot. `/?expand_all=1` shows everything expanded without touching the stored state.
 - Roadmap alignment: reads the Jira Product Discovery project and shows, in one line above the board, how many "Now" commitments actually have a column. An epic behind a "Now" item joins the board even without the `Priority` label, and columns are tagged with the roadmap item, the `Ongoing` lane, or a "nothing started" flag.
+- A `/community` view: the same board narrowed to epics carrying the community label, so community work can be shown on its own. On the main board those columns get a `community` tag.
 - A `/next` view: the roadmap's "Next" items ranked by readiness rather than progress — does a delivery epic exist, does it hold tickets, has it been committed — so it reads as a refinement queue instead of a second board.
 - Staleness highlighting: tickets get flagged "somewhat" and "really" stale after configurable day thresholds.
 - Adaptive polling: tight tick interval while someone is actively viewing the board, long interval otherwise.
@@ -62,6 +63,9 @@ important sections:
   the two staleness tiers.
 - `board.ongoing_label` — epics with this label are continuous work and get
   their own lane instead of being flagged as stalled.
+- `board.community_label` — epics with this label (on top of `Priority`) get a
+  `community` tag and the Community view. `ongoing_label` also takes a list,
+  e.g. `["Ongoing", "Community"]`, when community epics never finish.
 - `discovery.*` — optional Jira Product Discovery roadmap. `now_query` /
   `next_query` are JQL over the ideas project; `horizon_field`,
   `incubator_field` and `rank_field` are the custom field ids on an idea, and

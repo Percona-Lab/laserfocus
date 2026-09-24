@@ -68,7 +68,9 @@
           | showing collapsed
 
       .kb-view-tabs role="group" aria-label="View"
-        a.kb-act-pill href=root_path data-on="1" Board
+        a.kb-act-pill href=root_path data-on=(@presenter.community? ? "0" : "1") Board
+        - if @presenter.community_enabled?
+          a.kb-act-pill href=community_path data-on=(@presenter.community? ? "1" : "0") Community
         a.kb-act-pill href=next_path data-on="0" Next
 
       .kb-group-mode role="group" aria-label="Column grouping" data-controller="group-mode"

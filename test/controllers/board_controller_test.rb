@@ -146,4 +146,21 @@ class BoardControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "#kb-col-PG-1 .kb-col-tag-now", text: /PGR-1/
   end
+
+  test "the community view renders only community epics" do
+    epics(:priority_two).update!(raw_fields: { "labels" => [ "Community" ] })
+    get community_path
+    assert_response :success
+    assert_select ".kb-col", count: 1
+    assert_select "#kb-col-PG-2"
+    assert_select ".kb-view-tabs a[data-on='1']", text: "Community"
+  end
+
+  test "the board tags community epics and links the Community tab" do
+    epics(:priority_two).update!(raw_fields: { "labels" => [ "Community" ] })
+    get root_path
+    assert_select ".kb-col", count: 2
+    assert_select "#kb-col-PG-2 .kb-col-tag-community", text: "community"
+    assert_select ".kb-view-tabs a[href='#{community_path}']"
+  end
 end

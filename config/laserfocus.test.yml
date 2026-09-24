@@ -21,6 +21,7 @@ board:
     "In Doc":      "doc"
     "Pending Release": "done"
     "Done":        "done"
+  community_label: "Community"
   new_statuses:  ["new"]
   done_statuses: ["done"]
   staleness:

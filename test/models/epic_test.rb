@@ -32,6 +32,14 @@ class EpicTest < ActiveSupport::TestCase
     refute epic.ongoing?(nil)
   end
 
+  test "labelled? matches any label in a list" do
+    epic = Epic.new(raw_fields: { "labels" => [ "Community" ] })
+    assert epic.labelled?(%w[Ongoing Community])
+    assert epic.ongoing?(%w[Ongoing Community])
+    refute epic.labelled?([ "Ongoing", nil ])
+    refute epic.labelled?([])
+  end
+
   test "status_category reads Jira's coarse bucket" do
     assert_nil Epic.new.status_category
     epic = Epic.new(raw_fields: { "status" => { "statusCategory" => { "key" => "indeterminate" } } })

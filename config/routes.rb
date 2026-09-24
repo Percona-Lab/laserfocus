@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   root "board#show"
+  get  "/community", to: "board#show", defaults: { view: "community" }
   get  "/next",    to: "next#show"
   get  "/history", to: "epic_history#show"
   post "/sync", to: "syncs#create"

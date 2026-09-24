@@ -808,6 +808,9 @@ a.kb-col-fold-name:hover { text-decoration: underline; }
 .kb-col-tag-now:hover { text-decoration: underline; }
 .kb-col-tag-ongoing { background: #ccfbf1; color: #0f766e; }
 [data-theme="dark"] .kb-col-tag-ongoing { background: #123632; color: #5eead4; }
+.kb-col-tag-community { background: #f3e8ff; color: #7e22ce; }
+[data-theme="dark"] .kb-col-tag-community { background: #2c1f3d; color: #d8b4fe; }
+.kb-col-fold-community { width: 7px; height: 7px; border-radius: 50%; background: #a855f7; margin: 4px auto 0; }
 .kb-col-tag-flag { background: #fef0e7; color: #c2410c; }
 [data-theme="dark"] .kb-col-tag-flag { background: #2a2317; color: #f0a860; }
 
