@@ -34,8 +34,8 @@ board:
   # rather than something that finishes, so the board tags them as their own
   # lane instead of flagging them as stalled.
   ongoing_label: "Ongoing"
-  # Optional. Epics with this label get a "community" tag on the board and are
-  # listed on their own Community view. They still need the Priority label.
+  # Optional. Epics with this label (they still need the Priority label) move
+  # from the main board to their own Community view.
   # ongoing_label also takes a list, e.g. ["Ongoing", "Community"], for
   # community epics that never finish.
   community_label: "Community"

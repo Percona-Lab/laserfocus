@@ -24,7 +24,7 @@ class BoardPresenter
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira
   end
 
-  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea, :community) do
+  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea) do
     def new_count    = new_issues.size
     def middle_count = middle_groups.values.sum(&:size)
     def done_count   = done_issues.size
@@ -104,11 +104,15 @@ class BoardPresenter
     @view = view.to_sym
     @community_label = community_label
     @ongoing_label = ongoing_label
-    @epics = community? ? epics.select { |e| community_epic?(e) } : epics
+    # The two views split the epics between them: a community epic moves to the
+    # Community view instead of sitting on the board as well.
+    community_epics, board_epics = epics.partition { |e| community_epic?(e) }
+    @community_keys = community_epics.map(&:jira_key).to_set
+    @epics = community? ? community_epics : board_epics
     # Orphan tickets have no epic to carry the label, so the Community view
     # has no Unplanned column.
     @orphan_issues = community? ? [] : orphan_issues
-    @now_ideas = community? ? now_ideas.select { |i| i.idea_deliveries.any? { |d| community_key?(d.jira_key) } } : now_ideas
+    @now_ideas = now_ideas.select { |idea| community_idea?(idea) == community? }
     @column_order = column_order
     @collapsed_keys = collapsed_keys.to_set
     @expand_all = !!expand_all
@@ -180,9 +184,10 @@ class BoardPresenter
     community_enabled? && epic.respond_to?(:labelled?) && epic.labelled?(@community_label)
   end
 
-  def community_key?(jira_key)
-    @community_keys ||= @epics.select { |e| community_epic?(e) }.map(&:jira_key).to_set
-    @community_keys.include?(jira_key)
+  # A Now item belongs to whichever view holds its delivery epics, so the board's
+  # roadmap line does not report community commitments as missing a column.
+  def community_idea?(idea)
+    idea.idea_deliveries.any? { |d| @community_keys.include?(d.jira_key) }
   end
 
   def ideas_by_delivery_key
@@ -212,8 +217,7 @@ class BoardPresenter
       epic, new_group, middle_groups, done_group,
       @collapsed_keys.include?(epic.jira_key),
       lane_for(epic, middle_groups),
-      roadmap_idea_for(epic.jira_key),
-      community_epic?(epic)
+      roadmap_idea_for(epic.jira_key)
     )
   end
 

@@ -34,5 +34,3 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-col
         = epic.name
     - unless epic.jira_key == "UNPLANNED"
       span.kb-col-fold-key= epic.jira_key
-    - if column.community
-      span.kb-col-fold-community title="Community work" aria-label="Community work"

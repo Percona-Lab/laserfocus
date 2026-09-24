@@ -322,11 +322,19 @@ class BoardPresenterTest < ActiveSupport::TestCase
 
   # ---------- community ----------
 
-  test "the board keeps every epic and tags the community ones" do
+  test "the board leaves community epics to the Community view" do
     epics(:priority_one).update!(raw_fields: { "labels" => [ "Priority", "Community" ] })
     cols = build_presenter(community_label: "Community").columns
-    assert_equal %w[PG-1 PG-2], cols.map { |c| c.epic.jira_key }
-    assert_equal [ true, false ], cols.map(&:community)
+    assert_equal %w[PG-2], cols.map { |c| c.epic.jira_key }
+  end
+
+  test "the board does not count Now items that deliver into community epics" do
+    epics(:priority_two).update!(raw_fields: { "labels" => [ "Community" ] })
+    ours = now_idea("PGR-1", %w[PG-1])
+    theirs = now_idea("PGR-2", %w[PG-2])
+    missing = now_idea("PGR-3", %w[PG-404])
+    presenter = build_presenter(community_label: "Community", now_ideas: [ ours, theirs, missing ])
+    assert_equal %w[PGR-1 PGR-3], presenter.now_ideas.map(&:jira_key)
   end
 
   test "the community view keeps only the labelled epics and drops Unplanned" do
@@ -345,10 +353,10 @@ class BoardPresenterTest < ActiveSupport::TestCase
     assert_equal %w[PGR-1], presenter.now_ideas.map(&:jira_key)
   end
 
-  test "without a community label nothing is tagged and the view is off" do
+  test "without a community label the view is off and the board keeps every epic" do
     epics(:priority_one).update!(raw_fields: { "labels" => [ "Community" ] })
     presenter = build_presenter
     refute presenter.community_enabled?
-    assert presenter.columns.none?(&:community)
+    assert_equal %w[PG-1 PG-2], presenter.columns.map { |c| c.epic.jira_key }
   end
 end
