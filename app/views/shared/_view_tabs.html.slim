@@ -1,4 +1,4 @@
-/ The same tabs on every view, so switching never moves the header around.
+/ The same tabs on every view.
 - current = local_assigns.fetch(:current)
 .kb-view-tabs role="group" aria-label="View"
   a.kb-act-pill href=root_path data-on=(current == :board ? "1" : "0") Board

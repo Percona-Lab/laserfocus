@@ -4,8 +4,6 @@
       = image_tag "/icon.png", alt: "", class: "kb-brand-logo"
       span.kb-brand-name LaserFocus
 
-    = render "shared/view_tabs", current: :next
-
     .kb-header-right
       - if @configured
         span.kb-counts
@@ -13,6 +11,8 @@
           - if @presenter.unlinked_count > 0
             | &nbsp;·&nbsp;
             span.stale= "#{@presenter.unlinked_count} with nothing in Jira"
+
+      = render "shared/view_tabs", current: :next
 
       = render "board/stale_banner", last_sync: @last_sync
       = render "shared/display_toggles"

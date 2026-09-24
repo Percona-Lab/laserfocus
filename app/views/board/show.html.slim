@@ -15,8 +15,6 @@
       = image_tag "/icon.png", alt: "", class: "kb-brand-logo"
       span.kb-brand-name LaserFocus
 
-    = render "shared/view_tabs", current: (@presenter.community? ? :community : :board)
-
     .kb-filter-wrap data-controller="filter-dropdown" data-action="click@window->filter-dropdown#closeIfOutside"
       button.kb-filter-btn type="button" data-action="filter-dropdown#toggle" data-board-target="statusFilterBtn" data-on="0" aria-label="Filter by status"
         span.kb-filter-dots
@@ -69,6 +67,7 @@
         a.kb-expand-all-hint href=root_path title="Collapsed columns are shown expanded on this page. Click to go back to the stored layout."
           | showing collapsed
 
+      = render "shared/view_tabs", current: (@presenter.community? ? :community : :board)
 
       .kb-group-mode role="group" aria-label="Column grouping" data-controller="group-mode"
         - group_mode_options.each do |mode, opt|
