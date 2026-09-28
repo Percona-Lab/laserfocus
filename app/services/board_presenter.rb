@@ -4,7 +4,7 @@ class BoardPresenter
   Warning = Struct.new(:issue_key, :status, :reason)
   IssueRow = Struct.new(:postit, :depth)
 
-  IssuePresenter = Struct.new(:issue, :display_status, :staleness) do
+  IssuePresenter = Struct.new(:issue, :display_status, :staleness, :snooze) do
     def jira_key        = issue.jira_key
     def summary         = issue.summary
     def assignee        = issue.assignee_username
@@ -22,6 +22,8 @@ class BoardPresenter
     def created_at_jira = issue.created_at_jira
     def status_changed_at_jira = issue.status_changed_at_jira
     def transitioned_at = issue.status_changed_at_jira || issue.created_at_jira
+    def stale?   = %i[somewhat really].include?(staleness)
+    def snoozed? = staleness == :snoozed
   end
 
   Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea) do
@@ -79,6 +81,7 @@ class BoardPresenter
       community_label: config.community_label,
       now_ideas: DiscoveryIdea.now.includes(:idea_deliveries).to_a,
       orphan_issues: Issue.active.orphan,
+      snoozes: StaleSnooze.running.to_a,
       column_order: order.column_order,
       collapsed_keys: order.collapsed_columns,
       expand_all: expand_all,
@@ -98,7 +101,7 @@ class BoardPresenter
   end
 
   def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:,
-                 orphan_issues: [], column_order: [], collapsed_keys: [], expand_all: false,
+                 orphan_issues: [], snoozes: [], column_order: [], collapsed_keys: [], expand_all: false,
                  ongoing_label: nil, community_label: nil, view: :board, now_ideas: [],
                  group_mode: :staleness)
     @view = view.to_sym
@@ -121,6 +124,7 @@ class BoardPresenter
     @new_statuses = new_statuses
     @done_statuses = done_statuses
     @staleness = staleness
+    @snoozes = snoozes.index_by(&:jira_key)
     @warnings = []
   end
 
@@ -249,6 +253,13 @@ class BoardPresenter
       transitioned_at: issue.status_changed_at_jira || issue.created_at_jira,
       display_status: display
     )
-    IssuePresenter.new(issue, display, bucket)
+    # A snooze only quiets a ticket that is actually stale, and only in the
+    # status it was snoozed in.
+    snooze = @snoozes[issue.jira_key]
+    if snooze&.applies_to?(issue) && %i[somewhat really].include?(bucket)
+      IssuePresenter.new(issue, display, :snoozed, snooze)
+    else
+      IssuePresenter.new(issue, display, bucket, nil)
+    end
   end
 end

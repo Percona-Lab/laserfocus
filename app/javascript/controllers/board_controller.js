@@ -335,6 +335,8 @@ export default class extends Controller {
 
   _renderTooltip(card) {
     if (!this.hasTooltipTarget) return
+    // The snooze menu sits where the tooltip would; don't cover it.
+    if (document.getElementById("kb-snooze")?.hidden === false) return
     const ds = card.dataset
     const stateColor = ds.tooltipStateColor || "#94a3b8"
     const stale = ds.tooltipStale && ds.tooltipStale !== "fresh"
@@ -359,6 +361,13 @@ export default class extends Controller {
             <span class="kb-tt-pr-title">${this._esc(pr.title || pr.url)}</span>
           </a>`).join("")}</div>`
       : ""
+    const snoozeRow = ds.tooltipSnooze
+      ? `<span class="lbl">Snoozed</span><span class="val">${this._esc(ds.tooltipSnooze)}</span>`
+      : ""
+    const hint = ds.snoozeKey
+      ? (ds.tooltipSnooze ? "Click card to open in Jira ↗ · right-click to see or lift the snooze"
+                          : "Click card to open in Jira ↗ · right-click to snooze")
+      : "Click card to open in Jira ↗"
     const descHtml = this._descriptionHtml(ds.tooltipDescription)
     this.tooltipTarget.innerHTML = `
       <div class="kb-tt-row">
@@ -374,11 +383,12 @@ export default class extends Controller {
         ${componentsRow}
         <span class="lbl">Assignee</span><span class="val">${this._esc(ds.tooltipAssignee || "Unassigned")}</span>
         <span class="lbl">In state</span><span class="val" style="color:${staleColor}">${ds.tooltipDays ? ds.tooltipDays + " days" : "—"}${stale ? " · " + staleClass : ""}</span>
+        ${snoozeRow}
         <span class="lbl">Priority</span><span class="val">${this._esc(ds.tooltipPriority || "Medium")}</span>
         <span class="lbl">Jira status</span><span class="val">${this._esc(ds.tooltipStatusRaw || "—")}</span>
       </div>
       ${prsHtml}
-      <div class="kb-tt-hint">Click card to open in Jira ↗</div>
+      <div class="kb-tt-hint">${hint}</div>
     `
     this._ttAnchor = card
     this.tooltipTarget.hidden = false

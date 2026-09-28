@@ -127,6 +127,8 @@ class JiraSync
 
     sync_pull_requests!(all_assigned_keys.to_a + seen_orphan_keys)
 
+    StaleSnooze.prune!(now: now)
+
     run.update!(finished_at: Time.current, ok: true, fetched_count: fetched)
     BoardSnapshot.bump!
     BoardBroadcasts.board

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_000001) do
   create_table "board_orders", force: :cascade do |t|
     t.json "collapsed_columns", default: [], null: false
     t.json "column_order", default: [], null: false
@@ -100,6 +100,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_000002) do
     t.index ["jira_key"], name: "index_issues_on_jira_key", unique: true
     t.index ["jira_status"], name: "index_issues_on_jira_status"
     t.index ["removed_at"], name: "index_issues_on_removed_at"
+  end
+
+  create_table "stale_snoozes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "jira_key", null: false
+    t.string "jira_status", null: false
+    t.string "reason"
+    t.string "snoozed_by", null: false
+    t.datetime "snoozed_until", null: false
+    t.datetime "updated_at", null: false
+    t.index ["jira_key"], name: "index_stale_snoozes_on_jira_key", unique: true
+    t.index ["snoozed_until"], name: "index_stale_snoozes_on_snoozed_until"
   end
 
   create_table "sync_runs", force: :cascade do |t|

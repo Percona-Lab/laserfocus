@@ -82,6 +82,17 @@ class LaserFocusConfigTest < ActiveSupport::TestCase
     assert_equal "project = PG AND created >= -10d", cfg.board.new_unplanned_query
   end
 
+  test "snooze_days defaults to 7" do
+    cfg = LaserFocus::Config.load_from_string(BASE)
+    assert_equal 7, cfg.board.snooze_days
+  end
+
+  test "snooze_days reads the staleness section" do
+    yaml = BASE.sub("really_days: 10 }", "really_days: 10, snooze_days: 3 }")
+    assert_not_equal BASE, yaml
+    assert_equal 3, LaserFocus::Config.load_from_string(yaml).board.snooze_days
+  end
+
   test "new_unplanned_days defaults to 10" do
     cfg = LaserFocus::Config.load_from_string(BASE)
     assert_equal 10, cfg.board.new_unplanned_days

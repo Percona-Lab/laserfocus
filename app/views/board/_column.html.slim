@@ -7,7 +7,9 @@
 - todo_count  = todo_rows.size
 - done_count  = done_rows.size
 - middle_count = middle_rows.values.sum(&:size)
-- stale_count = column.middle_groups.values.flatten.count { |p| %i[somewhat really].include?(p.staleness) }
+- middle_issues = column.middle_groups.values.flatten
+- stale_count = middle_issues.count(&:stale?)
+- snoozed_count = middle_issues.count(&:snoozed?)
 - accent = column_accent(epic.jira_key)
 - not_started = column.lane == :focus && middle_count.zero? && total > 0
 - not_started_label = column.roadmap_idea ? "committed · nothing started" : "nothing started"
@@ -43,6 +45,10 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
       - if stale_count > 0
         span.kb-col-stale
           | ⚠ #{stale_count} stale
+      - if snoozed_count > 0
+        span.kb-col-snoozed class=("kb-col-snoozed-alone" if stale_count.zero?) title="#{snoozed_count} stale #{snoozed_count == 1 ? "ticket" : "tickets"} snoozed"
+          = snooze_icon_svg(size: 9)
+          | #{snoozed_count} snoozed
       - if @presenter.expand_all? && column.collapsed
         span.kb-col-collapsed-chip title="Stored as collapsed, shown expanded by ?expand_all"
           | collapsed

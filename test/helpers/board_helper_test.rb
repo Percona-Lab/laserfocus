@@ -27,4 +27,17 @@ class BoardHelperTest < ActionView::TestCase
   test "provisional_meta returns the cool-blue paper and accent" do
     assert_equal({ paper: "#eaf1ff", accent: "#2563eb" }, provisional_meta)
   end
+
+  test "snoozed tickets get a neutral style and their own label" do
+    assert_equal "snoozed", staleness_label(:snoozed)
+    assert_equal "#ffffff", staleness_meta(:snoozed)[:paper]
+    assert_equal staleness_meta(:fresh)[:border], staleness_meta(:snoozed)[:border]
+  end
+
+  test "snooze_summary names who, until when and why" do
+    s = StaleSnooze.new(snoozed_by: "Kai Wagner", snoozed_until: Time.zone.local(2026, 10, 5, 12), reason: "waiting on vendor")
+    assert_equal "by Kai Wagner until Oct 5 · waiting on vendor", snooze_summary(s)
+    s.reason = nil
+    assert_equal "by Kai Wagner until Oct 5", snooze_summary(s)
+  end
 end

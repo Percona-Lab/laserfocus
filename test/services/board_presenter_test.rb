@@ -12,10 +12,11 @@ class BoardPresenterTest < ActiveSupport::TestCase
 
   def build_presenter(orphan_issues: [], column_order: [], group_mode: :staleness, collapsed_keys: [],
                       expand_all: false, ongoing_label: nil, now_ideas: [],
-                      community_label: nil, view: :board)
+                      community_label: nil, view: :board, snoozes: [])
     BoardPresenter.new(
       epics: Epic.active.ordered.includes(:issues),
       orphan_issues: orphan_issues,
+      snoozes: snoozes,
       column_order: column_order,
       collapsed_keys: collapsed_keys,
       expand_all: expand_all,
@@ -358,5 +359,48 @@ class BoardPresenterTest < ActiveSupport::TestCase
     presenter = build_presenter
     refute presenter.community_enabled?
     assert_equal %w[PG-1 PG-2], presenter.columns.map { |c| c.epic.jira_key }
+  end
+
+  def presented(key, presenter)
+    presenter.columns.flat_map(&:all_issues).find { |p| p.jira_key == key }
+  end
+
+  def snooze(key, status:, until_at: 3.days.from_now)
+    StaleSnooze.new(jira_key: key, jira_status: status, snoozed_until: until_at, snoozed_by: "Alice")
+  end
+
+  test "a snoozed stale ticket is shown as snoozed and carries its snooze" do
+    s = snooze("PG-11", status: "In Review")
+    p = presented("PG-11", build_presenter(snoozes: [ s ]))
+    assert_equal :snoozed, p.staleness
+    assert_equal s, p.snooze
+    assert p.snoozed?
+    assert_not p.stale?
+  end
+
+  test "a snooze from another status does not hide the ticket" do
+    p = presented("PG-11", build_presenter(snoozes: [ snooze("PG-11", status: "In Progress") ]))
+    assert_equal :really, p.staleness
+    assert_nil p.snooze
+    assert p.stale?
+  end
+
+  test "an expired snooze does not hide the ticket" do
+    p = presented("PG-11", build_presenter(snoozes: [ snooze("PG-11", status: "In Review", until_at: 1.minute.ago) ]))
+    assert_equal :really, p.staleness
+  end
+
+  test "a snooze on a fresh ticket changes nothing" do
+    p = presented("PG-10", build_presenter(snoozes: [ snooze("PG-10", status: "In Progress") ]))
+    assert_equal :fresh, p.staleness
+    assert_nil p.snooze
+  end
+
+  test "build only loads running snoozes" do
+    StaleSnooze.create!(jira_key: "PG-11", jira_status: "In Review", snoozed_until: 2.days.from_now, snoozed_by: "Alice")
+    assert_equal :snoozed, presented("PG-11", BoardPresenter.build).staleness
+
+    StaleSnooze.update_all(snoozed_until: 1.minute.ago)
+    assert_includes %i[somewhat really], presented("PG-11", BoardPresenter.build).staleness
   end
 end

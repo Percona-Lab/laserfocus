@@ -25,6 +25,17 @@
 - data_attrs[:tooltip_components] = components.join(", ") if components.any?
 - data_attrs[:tooltip_description] = p.description_html if p.description_html.present?
 - data_attrs[:critical] = "1" if stale_lvl == "critical"
+- snooze = p.snooze
+- if p.stale? || snooze
+  - data_attrs[:action] += " contextmenu->snooze#open"
+  - data_attrs[:snooze_key] = p.jira_key
+  - data_attrs[:snooze_state] = state[:label]
+- if snooze
+  - data_attrs[:tooltip_snooze] = snooze_summary(snooze)
+  - data_attrs[:snoozed_by] = snooze.snoozed_by
+  - data_attrs[:snoozed_until] = snooze_until_label(snooze)
+  - data_attrs[:snooze_days_left] = snooze.days_left.to_s
+  - data_attrs[:snooze_reason] = snooze.reason if snooze.reason.present?
 - data_attrs[:provisional] = "1" if prov
 - data_attrs[:ghost_epic] = "1" if p.epic_id.nil? && p.parent_jira_key.present?
 - card_classes = [ "kb-card" ]
@@ -40,7 +51,10 @@
       = priority_flag_svg(p.priority, size: 13)
       - if age_show && days
         span.kb-age style="background:#{stale[:bg]};color:#{stale[:fg]};"
-          span.dot style="background:#{stale[:dot]};"
+          - if snooze
+            = snooze_icon_svg
+          - else
+            span.dot style="background:#{stale[:dot]};"
           | #{days}d
   .kb-card-title= p.summary
   .kb-card-row2

@@ -11,6 +11,7 @@ LaserFocus polls JIRA on a schedule, stores a denormalized snapshot in SQLite, a
 - A `/community` view: the board for epics carrying the community label. Those epics move there: they no longer show on the main board, and neither do the roadmap "Now" items that deliver into them.
 - A `/next` view: the roadmap's "Next" items as columns, ranked left to right. The cards are the readiness steps (delivery ticket, epic on the board, tickets under it, committed): met ones fade back, the first open one says what to do in Jira. Board, Community and Next share the same header tabs.
 - Staleness highlighting: tickets get flagged "somewhat" and "really" stale after configurable day thresholds.
+- Stale snooze: right-click a stale card to snooze it, with an optional reason, when it is stuck for a good reason. For `board.staleness.snooze_days` (default 7) it shows as fresh with a moon on its age, and drops out of the stale counts. Anyone on the board sees who snoozed it and why in the tooltip, and can lift the snooze from the same menu. The snooze ends early when the ticket changes status.
 - Adaptive polling: tight tick interval while someone is actively viewing the board, long interval otherwise.
 - Google OAuth login restricted to an allow-list of domains and/or individual emails.
 
@@ -61,6 +62,8 @@ important sections:
   `new` / `in_progress` / `review` / `done` columns.
 - `board.staleness.somewhat_days` / `really_days` — day thresholds for
   the two staleness tiers.
+- `board.staleness.snooze_days` — how long a snoozed stale ticket stays
+  out of the highlight (default 7).
 - `board.ongoing_label` — epics with this label are continuous work and get
   their own lane instead of being flagged as stalled.
 - `board.community_label` — epics with this label (on top of `Priority`) move

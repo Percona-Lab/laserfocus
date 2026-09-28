@@ -1,0 +1,29 @@
+/ Filled in by snooze_controller.js for the card that was right-clicked.
+.kb-snooze#kb-snooze data-snooze-target="menu" role="dialog" aria-label="Snooze staleness" hidden=true data-turbo-permanent=true
+  .kb-snooze-pane data-snooze-target="snoozePane"
+    form.kb-snooze-form data-action="submit->snooze#submit"
+      .kb-snooze-head
+        span.kb-snooze-title Snooze staleness
+        span.kb-snooze-sub data-snooze-target="snoozeSub"
+      label.kb-snooze-label
+        | Reason (optional)
+        input.kb-snooze-input type="text" name="reason" maxlength=StaleSnooze::REASON_LIMIT placeholder="e.g. waiting on vendor" autocomplete="off" data-snooze-target="reason"
+      .kb-snooze-note data-snooze-target="snoozeNote"
+      .kb-snooze-error data-snooze-target="error" hidden=true
+      .kb-snooze-actions
+        button.kb-snooze-btn type="button" data-action="snooze#close" Cancel
+        button.kb-snooze-btn.kb-snooze-btn-primary type="submit" data-snooze-target="submit"
+          = snooze_icon_svg(size: 11)
+          span data-snooze-target="submitLabel"
+  .kb-snooze-pane data-snooze-target="infoPane"
+    .kb-snooze-head.kb-snooze-head-icon
+      span.kb-snooze-badge= snooze_icon_svg(size: 13)
+      span
+        span.kb-snooze-title data-snooze-target="infoTitle"
+        span.kb-snooze-sub data-snooze-target="infoSub"
+    .kb-snooze-reason data-snooze-target="infoReason"
+    .kb-snooze-note data-snooze-target="infoNote"
+    .kb-snooze-error data-snooze-target="error" hidden=true
+    .kb-snooze-actions
+      button.kb-snooze-btn type="button" data-action="snooze#close" Close
+      button.kb-snooze-btn.kb-snooze-btn-primary type="button" data-action="snooze#unsnooze" Unsnooze

@@ -52,6 +52,37 @@ class JiraSyncTest < ActiveSupport::TestCase
     assert_equal [ "API" ], Issue.first.components
   end
 
+  test "drops snoozes of tickets that changed status and keeps the others" do
+    stub_request(:get, %r{/search}).to_return do |req|
+      decoded = CGI.unescape(req.uri.to_s)
+      body = case decoded
+      when /labels.*Priority/i
+               { "issues" => [
+                   { "key" => "PG-1", "fields" => { "summary" => "Epic A",
+                                                    "status" => { "name" => "In Progress" } } }
+                 ], "total" => 1, "startAt" => 0, "maxResults" => 50 }
+      when /parent\s+in\s*\(.*PG-1.*\)/i
+               { "issues" => [
+                   { "key" => "PG-10", "fields" => { "summary" => "Moved on", "status" => { "name" => "In Review" },
+                                                     "issuetype" => { "name" => "Task" }, "parent" => { "key" => "PG-1" } } },
+                   { "key" => "PG-11", "fields" => { "summary" => "Still stuck", "status" => { "name" => "In Progress" },
+                                                     "issuetype" => { "name" => "Task" }, "parent" => { "key" => "PG-1" } } }
+                 ], "total" => 2, "startAt" => 0, "maxResults" => 50 }
+      else
+               { "issues" => [], "total" => 0, "startAt" => 0, "maxResults" => 50 }
+      end
+      { status: 200, body: body.to_json, headers: { "Content-Type" => "application/json" } }
+    end
+    StaleSnooze.delete_all
+    StaleSnooze.create!(jira_key: "PG-10", jira_status: "In Progress", snoozed_until: 3.days.from_now, snoozed_by: "Alice")
+    StaleSnooze.create!(jira_key: "PG-11", jira_status: "In Progress", snoozed_until: 3.days.from_now, snoozed_by: "Alice")
+
+    run = JiraSync.new(epic_query: 'project = PG AND labels = "Priority"', unplanned_query: nil).run!
+
+    assert run.ok, run.error_message
+    assert_equal [ "PG-11" ], StaleSnooze.pluck(:jira_key)
+  end
+
   test "fetches subtasks below epic children" do
     stub_request(:get, %r{/search}).to_return do |req|
       decoded = CGI.unescape(req.uri.to_s)

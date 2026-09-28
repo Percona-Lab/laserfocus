@@ -44,6 +44,10 @@ board:
   staleness:
     somewhat_days: 7
     really_days:   21
+    # Right-clicking a stale ticket on the board snoozes it for this many days:
+    # it shows as fresh (with a moon on its age) and drops out of the stale
+    # counts. The snooze ends early when the ticket changes status.
+    snooze_days:   7
   ignore_staleness_for_new_issues: true
 
 # Optional. Jira Product Discovery roadmap, used to check that what the roadmap

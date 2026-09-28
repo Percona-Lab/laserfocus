@@ -113,6 +113,8 @@ module LaserFocus
     end
 
     class BoardSection
+      DEFAULT_SNOOZE_DAYS = 7
+
       def initialize(h) = @h = h
       def epic_query  = @h["epic_query"]
       def closed_epics_query = @h["closed_epics_query"]
@@ -132,6 +134,8 @@ module LaserFocus
       def community_label = @h["community_label"]
       def done_statuses = @h["done_statuses"]
       def staleness  = OpenStruct.new(@h["staleness"])
+      # How long a snoozed stale ticket stays out of the highlight.
+      def snooze_days = (@h.dig("staleness", "snooze_days") || DEFAULT_SNOOZE_DAYS).to_i
       def ignore_staleness_for_new_issues
         @h.fetch("ignore_staleness_for_new_issues", true)
       end

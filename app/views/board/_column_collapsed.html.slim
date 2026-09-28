@@ -3,7 +3,7 @@
 - middle_issues = column.middle_groups.values.flatten
 - middle_count = middle_issues.size
 - done_count = column.done_issues.size
-- stale_count = middle_issues.count { |p| %i[somewhat really].include?(p.staleness) }
+- stale_count = middle_issues.count(&:stale?)
 - accent = column_accent(epic.jira_key)
 - new_meta = state_meta("new")
 - done_meta = state_meta("done")

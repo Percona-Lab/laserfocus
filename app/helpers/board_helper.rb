@@ -37,7 +37,9 @@ module BoardHelper
   STALENESS_STYLE = {
     fresh:    { bg: "#eef2f5", fg: "#64748b", dot: "#cbd5e1", border: "#e7e9ee", paper: "#ffffff" },
     somewhat: { bg: "#fef0e7", fg: "#c2410c", dot: "#f97316", border: "#f3c98a", paper: "#fff7e6" },
-    really:   { bg: "#fde7e7", fg: "#b91c1c", dot: "#ef4444", border: "#f0a0a0", paper: "#fff0ea" }
+    really:   { bg: "#fde7e7", fg: "#b91c1c", dot: "#ef4444", border: "#f0a0a0", paper: "#fff0ea" },
+    # Looks fresh on purpose: the team has seen it, standup should not dwell on it.
+    snoozed:  { bg: "#eef2f5", fg: "#556274", dot: "#94a3b8", border: "#e7e9ee", paper: "#ffffff" }
   }.freeze
 
   PROVISIONAL_STYLE = { paper: "#eaf1ff", accent: "#2563eb" }.freeze
@@ -122,8 +124,22 @@ module BoardHelper
     case bucket&.to_sym
     when :somewhat then "stale"
     when :really then "critical"
+    when :snoozed then "snoozed"
     else "fresh"
     end
+  end
+
+  def snooze_icon_svg(size: 10)
+    %(<svg class="kb-snooze-icon" width="#{size}" height="#{size}" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 7.2A4.5 4.5 0 1 1 4.8 2a3.6 3.6 0 0 0 5.2 5.2z"/></svg>).html_safe
+  end
+
+  def snooze_until_label(snooze)
+    snooze.snoozed_until.to_date.strftime("%b %-d")
+  end
+
+  # One line for the card tooltip: "by Kai Wagner until Oct 5 · waiting on vendor".
+  def snooze_summary(snooze)
+    [ "by #{snooze.snoozed_by} until #{snooze_until_label(snooze)}", snooze.reason.presence ].compact.join(" · ")
   end
 
   def days_in_state(presenter)

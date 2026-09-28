@@ -3,12 +3,13 @@
 
 - all_issues   = @presenter.columns.flat_map(&:all_issues)
 - total_tickets = all_issues.size
-- total_stale  = all_issues.count { |p| %i[somewhat really].include?(p.staleness) }
+- total_stale  = all_issues.count(&:stale?)
+- total_snoozed = all_issues.count(&:snoozed?)
 - configured_usernames = LASER_FOCUS_CONFIG.board.users.map { |u| u.jira_username.to_s }
 - active_assignees     = all_issues.map(&:assignee).map(&:to_s)
 - assignees = (configured_usernames + active_assignees).reject(&:empty?).uniq.sort
 
-.kb-shell data-controller="board" data-board-statuses-value="[]" data-board-assignees-value="[]" data-board-query-value="" data-board-activity-value="{}" data-board-ghost-epic-value="false"
+.kb-shell data-controller="board snooze" data-snooze-days-value=LASER_FOCUS_CONFIG.board.snooze_days data-board-statuses-value="[]" data-board-assignees-value="[]" data-board-query-value="" data-board-activity-value="{}" data-board-ghost-epic-value="false"
 
   header.kb-header
     .kb-brand
@@ -21,6 +22,9 @@
       span.kb-counts
         | #{total_tickets} tickets ·
         span.stale= "#{total_stale} stale"
+        - if total_snoozed > 0
+          | &nbsp;·&nbsp;
+          span.snoozed= "#{total_snoozed} snoozed"
 
       - if @expand_all
         a.kb-expand-all-hint href=root_path title="Collapsed columns are shown expanded on this page. Click to go back to the stored layout."
@@ -42,3 +46,4 @@
             = render "board/column_collapsed", column: col
 
   div data-board-target="tooltip" class="kb-tt" hidden=true
+  = render "board/snooze_menu"
