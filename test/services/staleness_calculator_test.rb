@@ -39,4 +39,21 @@ class StalenessCalculatorTest < ActiveSupport::TestCase
                  calc.bucket(transitioned_at: Time.utc(2024, 1, 1),
                              display_status: "done")
   end
+
+  test "lead makes a ticket moved during standup stale before the next one" do
+    # Moved at 11:10 CEST (09:10 UTC); a week later the standup starts at 11:00.
+    calc = StalenessCalculator.new(now: Time.utc(2026, 6, 16, 8, 45), somewhat_days: 7,
+                                   really_days: 21, lead: 60.minutes)
+    assert_equal :somewhat,
+                 calc.bucket(transitioned_at: Time.utc(2026, 6, 9, 9, 10),
+                             display_status: "in_progress")
+  end
+
+  test "lead does not flag a ticket well before the threshold" do
+    calc = StalenessCalculator.new(now: Time.utc(2026, 6, 16, 8, 0), somewhat_days: 7,
+                                   really_days: 21, lead: 60.minutes)
+    assert_equal :fresh,
+                 calc.bucket(transitioned_at: Time.utc(2026, 6, 9, 9, 10),
+                             display_status: "in_progress")
+  end
 end

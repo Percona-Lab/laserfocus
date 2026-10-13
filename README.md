@@ -64,6 +64,9 @@ important sections:
   the two staleness tiers.
 - `board.staleness.snooze_days` — how long a snoozed stale ticket stays
   out of the highlight (default 7).
+- `board.staleness.lead_minutes` — the day thresholds above fire this many
+  minutes early (default 60), so a ticket moved or snoozed during the daily
+  standup is flagged again by the start of the same standup days later.
 - `board.ongoing_label` — epics with this label are continuous work and get
   their own lane instead of being flagged as stalled.
 - `board.community_label` — epics with this label (on top of `Priority`) move

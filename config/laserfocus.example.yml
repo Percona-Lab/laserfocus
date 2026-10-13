@@ -48,6 +48,10 @@ board:
     # it shows as fresh (with a moon on its age) and drops out of the stale
     # counts. The snooze ends early when the ticket changes status.
     snooze_days:   7
+    # All three thresholds above fire this many minutes early (default 60), so
+    # a ticket moved or snoozed during the daily standup is flagged again by
+    # the start of the same standup days later.
+    lead_minutes:  60
   ignore_staleness_for_new_issues: true
 
 # Optional. Jira Product Discovery roadmap, used to check that what the roadmap

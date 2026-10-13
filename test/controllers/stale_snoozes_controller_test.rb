@@ -22,7 +22,7 @@ class StaleSnoozesControllerTest < ActionDispatch::IntegrationTest
 
       snooze = StaleSnooze.find_by!(jira_key: "PG-11")
       assert_equal "In Review", snooze.jira_status
-      assert_equal LASER_FOCUS_CONFIG.board.snooze_days.days.from_now, snooze.snoozed_until
+      assert_equal (LASER_FOCUS_CONFIG.board.snooze_days.days - LASER_FOCUS_CONFIG.board.staleness_lead).from_now, snooze.snoozed_until
       assert_equal "Alice Adams", snooze.snoozed_by
       assert_equal "waiting on vendor", snooze.reason
     end

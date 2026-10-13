@@ -93,6 +93,7 @@ class BoardPresenter
         now: Time.current,
         somewhat_days: config.staleness.somewhat_days,
         really_days: config.staleness.really_days,
+        lead: config.staleness_lead,
         ignore_for_new: config.ignore_staleness_for_new_issues,
         new_display_statuses: config.new_statuses,
         done_display_statuses: config.done_statuses
