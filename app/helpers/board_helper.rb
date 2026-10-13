@@ -142,9 +142,10 @@ module BoardHelper
     [ "by #{snooze.snoozed_by} until #{snooze_until_label(snooze)}", snooze.reason.presence ].compact.join(" · ")
   end
 
+  # Counts with the staleness lead, so a card that just went stale reads 7 days.
   def days_in_state(presenter)
     return nil unless presenter.transitioned_at
-    ((Time.current - presenter.transitioned_at) / 1.day).to_i
+    ((Time.current - presenter.transitioned_at + LASER_FOCUS_CONFIG.board.staleness_lead) / 1.day).to_i
   end
 
   def avatar_for(username)

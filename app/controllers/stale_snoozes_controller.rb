@@ -6,7 +6,7 @@ class StaleSnoozesController < ApplicationController
     snooze = StaleSnooze.find_or_initialize_by(jira_key: issue.jira_key)
     snooze.update!(
       jira_status: issue.jira_status,
-      snoozed_until: LASER_FOCUS_CONFIG.board.snooze_days.days.from_now,
+      snoozed_until: (LASER_FOCUS_CONFIG.board.snooze_days.days - LASER_FOCUS_CONFIG.board.staleness_lead).from_now,
       snoozed_by: session[:user_name].presence || current_user_email,
       reason: params[:reason].to_s.strip.first(StaleSnooze::REASON_LIMIT).presence
     )

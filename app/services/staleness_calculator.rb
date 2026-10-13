@@ -1,9 +1,9 @@
 class StalenessCalculator
-  def initialize(now:, somewhat_days:, really_days:, ignore_for_new: true,
+  def initialize(now:, somewhat_days:, really_days:, ignore_for_new: true, lead: 0,
                  new_display_statuses: [ "new" ], done_display_statuses: [ "done" ])
     @now = now
-    @somewhat = somewhat_days.days
-    @really   = really_days.days
+    @somewhat = somewhat_days.days - lead
+    @really   = really_days.days - lead
     @ignore_for_new = ignore_for_new
     @new_statuses = new_display_statuses
     @done_statuses = done_display_statuses

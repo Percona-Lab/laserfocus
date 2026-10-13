@@ -93,6 +93,17 @@ class LaserFocusConfigTest < ActiveSupport::TestCase
     assert_equal 3, LaserFocus::Config.load_from_string(yaml).board.snooze_days
   end
 
+  test "staleness_lead defaults to an hour" do
+    cfg = LaserFocus::Config.load_from_string(BASE)
+    assert_equal 60.minutes, cfg.board.staleness_lead
+  end
+
+  test "staleness_lead reads lead_minutes from the staleness section" do
+    yaml = BASE.sub("really_days: 10 }", "really_days: 10, lead_minutes: 30 }")
+    assert_not_equal BASE, yaml
+    assert_equal 30.minutes, LaserFocus::Config.load_from_string(yaml).board.staleness_lead
+  end
+
   test "new_unplanned_days defaults to 10" do
     cfg = LaserFocus::Config.load_from_string(BASE)
     assert_equal 10, cfg.board.new_unplanned_days
