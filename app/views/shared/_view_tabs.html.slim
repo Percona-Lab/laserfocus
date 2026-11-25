@@ -15,7 +15,7 @@
         span.kb-tab-badge= critical
   - if LASER_FOCUS_CONFIG.issues
     - issues_critical = IssuesPresenter.critical_count
-    a.kb-act-pill href=github_issues_path data-on=(current == :issues ? "1" : "0") title=(issues_critical.positive? ? "#{issues_critical} #{issues_critical == 1 ? "issue is" : "issues are"} critical: waiting far too long on the team" : "Open GitHub issues")
+    a.kb-act-pill href=github_issues_path data-on=(current == :issues ? "1" : "0") title=(issues_critical.positive? ? "#{issues_critical} #{issues_critical == 1 ? "issue is" : "issues are"} critical: waiting far too long on the team or the reporter" : "Open GitHub issues")
       | Issues
       - if issues_critical.positive?
         span.kb-tab-badge= issues_critical

@@ -54,11 +54,11 @@ class IssuesPresenter
     new(issues: issues, snoozes: StaleSnooze.running(now).to_a, people: people, now: now, viewer: viewer)
   end
 
-  # Cheap enough for every page: the red count on the Issues tab. Only what
-  # waits on the team counts; an issue going quiet on its reporter is no alarm.
+  # Cheap enough for every page: the red count on the Issues tab. Every card
+  # past its column's critical threshold counts, whoever has the ball.
   def self.critical_count(now: Time.current)
     return 0 unless LASER_FOCUS_CONFIG.issues
-    build(now: now).cards.count { |c| c.staleness == :really && c.waiting_on == "team" }
+    build(now: now).cards.count { |c| c.staleness == :really }
   end
 
   def initialize(issues:, snoozes: [], people: nil, now: Time.current, viewer: {},

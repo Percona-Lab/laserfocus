@@ -22,12 +22,14 @@ class IssuesPresenterTest < ActiveSupport::TestCase
     assert_equal :somewhat, cards[backlog.number].staleness
   end
 
-  test "old issues need a decision, and the tab counts only what is critical on the team" do
+  test "old issues need a decision, and the tab counts everything critical, the reporter's too" do
     create_github_issue(number: 1, waiting_since: 8.days.ago, opened_at: 100.days.ago)
     create_github_issue(number: 2, stage: "reporter", waiting_on: "reporter", waiting_since: 40.days.ago)
+    create_github_issue(number: 3, stage: "reporter", waiting_on: "reporter", waiting_since: 2.days.ago)
     presenter = IssuesPresenter.build
     assert presenter.cards.find { |c| c.number == 1 }.decision?
-    assert_equal 1, IssuesPresenter.critical_count
+    assert_equal :really, presenter.cards.find { |c| c.number == 2 }.staleness
+    assert_equal 2, IssuesPresenter.critical_count
   end
 
   test "a snooze holds until the ball moves" do
