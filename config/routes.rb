@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   patch "/column_collapse", to: "column_collapses#update"
   patch  "/stale_snooze", to: "stale_snoozes#update"
   delete "/stale_snooze", to: "stale_snoozes#destroy"
+  patch  "/repo_exclusion", to: "repo_exclusions#update"
   get  "/login",  to: "sessions#new"
   get  "/auth/:provider/callback", to: "sessions#create"
   get  "/auth/failure",            to: "sessions#failure"

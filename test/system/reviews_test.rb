@@ -34,6 +34,30 @@ class ReviewsSystemTest < ApplicationSystemTestCase
     assert_selector ".kb-pr-card", count: 2
   end
 
+  test "right-clicking a repo excludes it from my view, and again includes it" do
+    RepoExclusion.delete_all
+    find("[data-reviews-target='repoBtn']").click
+    find(".kb-filter-row[data-repo='acme/docs']").right_click
+    within(".kb-repo-ctx") { click_button "Exclude from my view" }
+
+    assert_selector ".kb-pr-card", count: 1
+    assert_no_selector ".kb-pr-card[data-repo='acme/docs']"
+    # The dropdown stays open, the row has moved under Excluded at the bottom.
+    assert_selector ".kb-repo-menu .kb-filter-row:last-of-type[data-repo='acme/docs'][data-excluded='1']"
+    assert_selector ".kb-repo-menu .kb-filter-section-label", text: "EXCLUDED"
+    assert_equal Set["acme/docs"], RepoExclusion.repos_for("alice@example.com")
+
+    # A left click on an excluded repo does not tick it.
+    find(".kb-filter-row[data-repo='acme/docs']").click
+    assert_selector ".kb-pr-card", count: 1
+
+    find(".kb-filter-row[data-repo='acme/docs']").right_click
+    within(".kb-repo-ctx") { click_button "Include in my view again" }
+    assert_selector ".kb-pr-card", count: 2
+    assert_selector ".kb-filter-row[data-repo='acme/docs'][data-excluded='0']"
+    assert_empty RepoExclusion.repos_for("alice@example.com")
+  end
+
   test "the community toggle keeps only PRs from outside the org" do
     find(".kb-community-btn").click
     assert_selector ".kb-pr-card", count: 1

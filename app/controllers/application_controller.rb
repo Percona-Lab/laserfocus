@@ -4,7 +4,7 @@ class ApplicationController < ActionController::Base
   before_action :require_login
   before_action :touch_user
 
-  helper_method :current_user_email
+  helper_method :current_user_email, :excluded_repos
 
   private
 
@@ -18,5 +18,11 @@ class ApplicationController < ActionController::Base
 
   def current_user_email
     session[:user_email]
+  end
+
+  # Repos the viewer took out of their Reviews and Issues views, lowercased.
+  # The tab counts on every view leave them out too.
+  def excluded_repos
+    @excluded_repos ||= RepoExclusion.repos_for(current_user_email)
   end
 end

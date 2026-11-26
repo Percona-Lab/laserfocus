@@ -87,6 +87,21 @@ class ReviewsPresenterTest < ActiveSupport::TestCase
     assert_equal [ [ "acme/server", 1 ], [ "acme/docs", 0 ] ], ReviewsPresenter.build.repos
   end
 
+  test "an excluded repo's PRs are left out, its row keeps the count it would show" do
+    freeze_time do
+      create_review_pr(repo: "acme/server", number: 1, waiting_since: 8.days.ago)
+      create_review_pr(repo: "acme/docs", number: 2, waiting_since: 8.days.ago)
+      presenter = ReviewsPresenter.build(excluded: Set["Acme/Docs"])
+
+      assert_equal [ "acme/server" ], presenter.cards.map(&:repo)
+      assert_equal [ [ "acme/server", 1 ], [ "acme/docs", 1 ] ], presenter.repos
+      assert presenter.excluded?("acme/docs")
+      assert_not presenter.excluded?("acme/server")
+      assert_equal 1, ReviewsPresenter.critical_count(excluded: Set["acme/docs"])
+      assert_equal 2, ReviewsPresenter.critical_count
+    end
+  end
+
   test "the viewer is found by name when they have no github override" do
     create_review_pr(number: 1, author: "KW", people_names: { "KW" => "Kai Wagner" })
     assert_equal "kw", ReviewsPresenter.build(viewer: { name: "Kai Wagner" }).viewer_login

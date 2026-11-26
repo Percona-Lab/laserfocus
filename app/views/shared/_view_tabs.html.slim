@@ -7,14 +7,14 @@
   a.kb-act-pill href=next_path data-on=(current == :next ? "1" : "0") Next
   - if LASER_FOCUS_CONFIG.reviews
     / The red count is there on every view, so piling-up reviews get noticed
-    / from the board too.
-    - critical = ReviewsPresenter.critical_count
+    / from the board too. It leaves out the repos the viewer excluded.
+    - critical = ReviewsPresenter.critical_count(excluded: excluded_repos)
     a.kb-act-pill href=reviews_path data-on=(current == :reviews ? "1" : "0") title=(critical.positive? ? "#{critical} #{critical == 1 ? "PR is" : "PRs are"} critical: waiting far too long for a review, an answer or a merge" : "Open PRs ready for review")
       | Reviews
       - if critical.positive?
         span.kb-tab-badge= critical
   - if LASER_FOCUS_CONFIG.issues
-    - issues_critical = IssuesPresenter.critical_count
+    - issues_critical = IssuesPresenter.critical_count(excluded: excluded_repos)
     a.kb-act-pill href=github_issues_path data-on=(current == :issues ? "1" : "0") title=(issues_critical.positive? ? "#{issues_critical} #{issues_critical == 1 ? "issue is" : "issues are"} critical: waiting far too long on the team or the reporter" : "Open GitHub issues")
       | Issues
       - if issues_critical.positive?

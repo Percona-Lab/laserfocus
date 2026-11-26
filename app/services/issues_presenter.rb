@@ -46,24 +46,24 @@ class IssuesPresenter
   end
 
   # viewer: { names:, github:, google_name:, email: } for the signed-in person,
-  # see GithubViewer.
-  def self.build(viewer: nil, now: Time.current)
+  # see GithubViewer. excluded: the repos the viewer took out of their view.
+  def self.build(viewer: nil, excluded: Set.new, now: Time.current)
     viewer ||= {}
     issues = GithubIssue.all.to_a
     people = ReviewPeople.from_prs(issues, viewer_names: viewer[:names] || [ viewer[:name] ], viewer_github: viewer[:github])
-    new(issues: issues, snoozes: StaleSnooze.running(now).to_a, people: people, now: now, viewer: viewer)
+    new(issues: issues, snoozes: StaleSnooze.running(now).to_a, people: people, now: now, viewer: viewer, excluded: excluded)
   end
 
   # Cheap enough for every page: the red count on the Issues tab. Every card
   # past its column's critical threshold counts, whoever has the ball.
-  def self.critical_count(now: Time.current)
+  def self.critical_count(excluded: Set.new, now: Time.current)
     return 0 unless LASER_FOCUS_CONFIG.issues
-    build(now: now).cards.count { |c| c.staleness == :really }
+    build(excluded: excluded, now: now).cards.count { |c| c.staleness == :really }
   end
 
-  def initialize(issues:, snoozes: [], people: nil, now: Time.current, viewer: {},
+  def initialize(issues:, snoozes: [], people: nil, now: Time.current, viewer: {}, excluded: Set.new,
                  config: LASER_FOCUS_CONFIG.issues, lead: LASER_FOCUS_CONFIG.board.staleness_lead)
-    @issues = issues
+    @issues, @hidden = split_excluded(issues, excluded)
     @snoozes = snoozes.index_by { |s| s.jira_key.downcase }
     @people = people || ReviewPeople.from_prs(issues)
     @now = now

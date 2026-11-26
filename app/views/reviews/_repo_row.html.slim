@@ -1,0 +1,12 @@
+/ One repo in the Repo filter. Click ticks it; right-click excludes it from
+/ the viewer's own Reviews and Issues views, or includes it again.
+- owner, name = repo.split("/", 2)
+- title = excluded ? "Excluded from your view. Right-click to include it again." : (count.zero? ? presenter.copy[:empty_repo] : nil)
+button.kb-filter-row type="button" data-reviews-target="repoRow" data-action="reviews#toggleRepo contextmenu->reviews#openRepoMenu" data-repo=repo.downcase data-on="0" data-empty=(count.zero? ? "1" : "0") data-excluded=(excluded ? "1" : "0") title=title
+  span.kb-filter-row-dot style="background:#{column_accent(repo.downcase)};"
+  span.kb-filter-row-label
+    span.kb-repo-owner= "#{owner}/"
+    = name
+  span.kb-repo-count= count
+  svg.kb-filter-check width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+    path d="M2.5 6.5L5.2 9.2L10.5 3.8"

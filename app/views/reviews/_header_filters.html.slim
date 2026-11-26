@@ -13,19 +13,22 @@
           path d="M1 2.5L4 5.5L7 2.5"
       .kb-filter-menu.kb-repo-menu data-filter-dropdown-target="menu" hidden=true
         p.kb-filter-section-label Repositories
-        - presenter.repos.sort_by { |r, n| [ -n, r.downcase ] }.each do |repo, count|
-          - owner, name = repo.split("/", 2)
-          button.kb-filter-row type="button" data-reviews-target="repoRow" data-action="reviews#toggleRepo" data-repo=repo.downcase data-on="0" data-empty=(count.zero? ? "1" : "0") title=(count.zero? ? presenter.copy[:empty_repo] : nil)
-            span.kb-filter-row-dot style="background:#{column_accent(repo.downcase)};"
-            span.kb-filter-row-label
-              span.kb-repo-owner= "#{owner}/"
-              = name
-            span.kb-repo-count= count
-            svg.kb-filter-check width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-              path d="M2.5 6.5L5.2 9.2L10.5 3.8"
+        - shown, excluded = presenter.repos.partition { |r, _| !presenter.excluded?(r) }
+        - shown.sort_by { |r, n| [ -n, r.downcase ] }.each do |repo, count|
+          = render "reviews/repo_row", repo: repo, count: count, excluded: false, presenter: presenter
+        - if excluded.any?
+          p.kb-filter-section-label title="Hidden from your view only. Right-click one to include it again." Excluded
+          - excluded.sort_by { |r, _| r.downcase }.each do |repo, count|
+            = render "reviews/repo_row", repo: repo, count: count, excluded: true, presenter: presenter
+        p.kb-repo-hint Right-click a repo to exclude it from your view
         .kb-filter-divider
         button.kb-filter-clear type="button" data-reviews-target="repoClear" data-action="reviews#clearRepos" hidden=true
           | ✕ Clear selection
+
+      / Right-click menu on a repo row. Inside the dropdown's wrap, so clicking
+      / it does not close the dropdown.
+      .kb-repo-ctx role="menu" data-reviews-target="repoCtx" hidden=true
+        button.kb-repo-ctx-btn type="button" role="menuitem" data-reviews-target="repoCtxBtn" data-action="reviews#toggleExclude"
 
     button.kb-ghost-btn.kb-community-btn type="button" data-reviews-target="communityBtn" data-action="reviews#toggleCommunity" data-on="0" title=presenter.copy[:community_hint]
       | 🌱

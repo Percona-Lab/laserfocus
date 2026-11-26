@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_26_000001) do
   create_table "board_orders", force: :cascade do |t|
     t.json "collapsed_columns", default: [], null: false
     t.json "column_order", default: [], null: false
@@ -121,6 +121,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_000001) do
     t.index ["jira_key"], name: "index_issues_on_jira_key", unique: true
     t.index ["jira_status"], name: "index_issues_on_jira_status"
     t.index ["removed_at"], name: "index_issues_on_removed_at"
+  end
+
+  create_table "repo_exclusions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "repo", null: false
+    t.datetime "updated_at", null: false
+    t.string "user_email", null: false
+    t.index ["user_email", "repo"], name: "index_repo_exclusions_on_user_email_and_repo", unique: true
   end
 
   create_table "review_pull_requests", force: :cascade do |t|

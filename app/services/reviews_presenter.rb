@@ -43,23 +43,23 @@ class ReviewsPresenter
   end
 
   # viewer: { names:, github:, google_name:, email: } for the signed-in person,
-  # see GithubViewer.
-  def self.build(viewer: nil, now: Time.current)
+  # see GithubViewer. excluded: the repos the viewer took out of their view.
+  def self.build(viewer: nil, excluded: Set.new, now: Time.current)
     viewer ||= {}
     prs = ReviewPullRequest.all.to_a
     people = ReviewPeople.from_prs(prs, viewer_names: viewer[:names] || [ viewer[:name] ], viewer_github: viewer[:github])
-    new(prs: prs, snoozes: StaleSnooze.running(now).to_a, people: people, now: now, viewer: viewer)
+    new(prs: prs, snoozes: StaleSnooze.running(now).to_a, people: people, now: now, viewer: viewer, excluded: excluded)
   end
 
   # Cheap enough for every page: the red count on the Reviews tab.
-  def self.critical_count(now: Time.current)
+  def self.critical_count(excluded: Set.new, now: Time.current)
     return 0 unless LASER_FOCUS_CONFIG.reviews
-    build(now: now).cards.count { |c| c.staleness == :really }
+    build(excluded: excluded, now: now).cards.count { |c| c.staleness == :really }
   end
 
-  def initialize(prs:, snoozes: [], people: nil, now: Time.current, viewer: {},
+  def initialize(prs:, snoozes: [], people: nil, now: Time.current, viewer: {}, excluded: Set.new,
                  config: LASER_FOCUS_CONFIG.reviews, lead: LASER_FOCUS_CONFIG.board.staleness_lead)
-    @prs = prs
+    @prs, @hidden = split_excluded(prs, excluded)
     @snoozes = snoozes.index_by { |s| s.jira_key.downcase }
     @people = people || ReviewPeople.from_prs(prs)
     @now = now

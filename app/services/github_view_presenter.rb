@@ -12,10 +12,16 @@ module GithubViewPresenter
   def community_count = cards.count { |c| c.item.community? }
   def no_reply_count = cards.count { |c| c.item.no_reply? }
 
+  # [repo, count] for the Repo filter, every watched repo. An excluded repo's
+  # count is what it would show, so the viewer sees what they leave out.
   def repos
     counts = cards.group_by { |c| c.repo.downcase }.transform_values(&:size)
-    @config.repos.map { |r| [ r, counts.fetch(r.downcase, 0) ] }
+    @config.repos.map { |r| [ r, counts.fetch(r.downcase) { hidden_counts.fetch(r.downcase, 0) } ] }
   end
+
+  # The repos the viewer took out of their view, lowercased.
+  def excluded_repos = @excluded
+  def excluded?(repo) = @excluded.include?(repo.to_s.downcase)
 
   # Everyone who wrote, replied to or is asked onto one of the items, for the
   # People filter: the team first, then everyone else, by display name.
@@ -60,6 +66,16 @@ module GithubViewPresenter
   end
 
   private
+
+  # The items to show, and the ones the viewer excluded by repo.
+  def split_excluded(items, excluded)
+    @excluded = excluded.to_set { |r| r.to_s.downcase }
+    items.partition { |i| !@excluded.include?(i.repo.downcase) }
+  end
+
+  def hidden_counts
+    @hidden_counts ||= @hidden.group_by { |i| i.repo.downcase }.transform_values(&:size)
+  end
 
   # Counts with the staleness lead, like days_in_state on the board, so an item
   # looked at during standup is flagged again by the same standup days later.

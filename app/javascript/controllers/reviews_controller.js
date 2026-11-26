@@ -1,7 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 
 // The Reviews and Issues views: repo, community, scope, search and people
-// filters over the PR or issue cards, plus the hover tooltip. Filters hide cards (and keep the column
+// filters over the PR or issue cards, the right-click menu that excludes a
+// repo from the viewer's own views, plus the hover tooltip. Filters hide cards (and keep the column
 // counts honest); the state lives in the URL hash like the board's, so it
 // survives the live refresh and can be shared as a link.
 export default class extends Controller {
@@ -9,7 +10,7 @@ export default class extends Controller {
     "card", "count", "empty", "tooltip", "search",
     "repoRow", "repoBtn", "repoBadge", "repoClear", "communityBtn", "scopeBtn",
     "personRow", "personCount", "peopleBtn", "peopleLabel", "peopleClear",
-    "roleBtn", "noReplyRow", "teamRow"
+    "roleBtn", "noReplyRow", "teamRow", "repoCtx", "repoCtxBtn"
   ]
   static values = { viewer: String }
   static ROLES = [ "any", "author", "replied", "requested" ]
@@ -25,9 +26,15 @@ export default class extends Controller {
     document.addEventListener("turbo:morph", this._onMorph)
     this._onBeforeMorphAttr = (event) => this._keepAttr(event)
     document.addEventListener("turbo:before-morph-attribute", this._onBeforeMorphAttr)
-    this._onMove = () => this._doHide()
+    this._onMove = () => { this._doHide(); this._closeRepoMenu() }
     window.addEventListener("scroll", this._onMove, true)
     window.addEventListener("resize", this._onMove)
+    this._onKey = (e) => { if (e.key === "Escape") this._closeRepoMenu() }
+    document.addEventListener("keydown", this._onKey)
+    this._onPointer = (e) => {
+      if (this.hasRepoCtxTarget && !this.repoCtxTarget.hidden && !this.repoCtxTarget.contains(e.target)) this._closeRepoMenu()
+    }
+    document.addEventListener("mousedown", this._onPointer)
   }
 
   disconnect() {
@@ -35,6 +42,8 @@ export default class extends Controller {
     document.removeEventListener("turbo:before-morph-attribute", this._onBeforeMorphAttr)
     window.removeEventListener("scroll", this._onMove, true)
     window.removeEventListener("resize", this._onMove)
+    document.removeEventListener("keydown", this._onKey)
+    document.removeEventListener("mousedown", this._onPointer)
   }
 
   // Keeps the reader's state through a live refresh: what is shown or ticked,
@@ -57,7 +66,60 @@ export default class extends Controller {
   // ---------- filters ----------
   toggleRepo(event) {
     event.stopPropagation()
+    // An excluded repo has no cards on the page; right-click brings it back.
+    if (event.currentTarget.dataset.excluded === "1") return
     this._toggleIn("r", event.currentTarget.dataset.repo)
+  }
+
+  // ---------- exclude a repo from the viewer's views ----------
+  openRepoMenu(event) {
+    if (!this.hasRepoCtxTarget) return
+    event.preventDefault()
+    event.stopPropagation()
+    const row = event.currentTarget
+    this._ctxRepo = row.dataset.repo
+    this._ctxExclude = row.dataset.excluded !== "1"
+    const btn = this.repoCtxBtnTarget
+    btn.disabled = false
+    btn.textContent = this._ctxExclude ? "Exclude from my view" : "Include in my view again"
+    const menu = this.repoCtxTarget
+    menu.hidden = false
+    const w = menu.offsetWidth
+    const h = menu.offsetHeight
+    menu.style.left = `${Math.max(8, Math.min(event.clientX, window.innerWidth - w - 8))}px`
+    menu.style.top = `${Math.max(8, Math.min(event.clientY, window.innerHeight - h - 8))}px`
+    btn.focus()
+  }
+
+  // Saves the choice for the signed-in viewer, then refreshes the page: the
+  // server leaves the repo's cards out, moves its row and redoes the tab counts.
+  toggleExclude(event) {
+    event.stopPropagation()
+    const repo = this._ctxRepo
+    if (!repo) return
+    const excluded = this._ctxExclude
+    this.repoCtxBtnTarget.disabled = true
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+    fetch("/repo_exclusion", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": token },
+      body: JSON.stringify({ repo, excluded })
+    }).then((res) => {
+      if (!res.ok) throw new Error(`${res.status}`)
+      this._closeRepoMenu()
+      // A ticked repo that is now excluded would filter to nothing.
+      if (excluded && this._state.r.includes(repo)) this._set({ r: this._state.r.filter((r) => r !== repo) })
+      Turbo.visit(location.href, { action: "replace" })
+    }).catch((e) => {
+      console.error("Failed to save repo exclusion", e)
+      this.repoCtxBtnTarget.disabled = false
+      this.repoCtxBtnTarget.textContent = "Could not save. Try again."
+    })
+  }
+
+  _closeRepoMenu() {
+    if (this.hasRepoCtxTarget) this.repoCtxTarget.hidden = true
+    this._ctxRepo = null
   }
 
   clearRepos(event) {
@@ -243,6 +305,9 @@ export default class extends Controller {
         o: this.constructor.ROLES.includes(st.o) ? st.o : "any",
         n: !!st.n
       }
+      // A shared link may tick a repo this viewer excluded; it has no cards here.
+      const excluded = new Set(this.repoRowTargets.filter((row) => row.dataset.excluded === "1").map((row) => row.dataset.repo))
+      this._state.r = this._state.r.filter((r) => !excluded.has(r))
       // A scope the viewer cannot use (no github login) falls back to All.
       const btn = this.scopeBtnTargets.find((b) => b.dataset.scope === this._state.s)
       if (btn && btn.disabled) this._state.s = "all"

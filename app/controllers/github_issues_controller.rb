@@ -5,7 +5,7 @@ class GithubIssuesController < ApplicationController
 
   def show
     @configured = LASER_FOCUS_CONFIG.issues.present?
-    @presenter = IssuesPresenter.build(viewer: viewer) if @configured
+    @presenter = IssuesPresenter.build(viewer: viewer, excluded: excluded_repos) if @configured
     @issue_sync = ReviewSyncRun.issues.most_recent.first
     @last_sync = SyncRun.ok.most_recent.first
     # Same count as on the board, see BoardController.
