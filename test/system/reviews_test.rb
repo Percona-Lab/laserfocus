@@ -43,8 +43,9 @@ class ReviewsSystemTest < ApplicationSystemTestCase
     assert_selector ".kb-pr-card", count: 1
     assert_no_selector ".kb-pr-card[data-repo='acme/docs']"
     # The dropdown stays open, the row has moved under Excluded at the bottom.
-    assert_selector ".kb-repo-menu .kb-filter-row:last-of-type[data-repo='acme/docs'][data-excluded='1']"
+    assert_selector ".kb-repo-menu .kb-filter-row[data-repo='acme/docs'][data-excluded='1']"
     assert_selector ".kb-repo-menu .kb-filter-section-label", text: "EXCLUDED"
+    assert_equal %w[acme/server acme/docs], all(".kb-repo-menu .kb-filter-row").map { |row| row["data-repo"] }
     assert_equal Set["acme/docs"], RepoExclusion.repos_for("alice@example.com")
 
     # A left click on an excluded repo does not tick it.
