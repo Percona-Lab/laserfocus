@@ -25,9 +25,6 @@ class LandingAssessment
   # How far progress (done + half of in progress) may trail the share of the
   # quarter that has gone before an idea counts as at risk.
   BEHIND_TOLERANCE = 0.3
-  # Within this many days of the quarter starting, an idea still in Later or
-  # Incubator is at risk.
-  LEAD_DAYS = 45
   # A target changed this soon after it was first set is a correction, not a
   # slip.
   GRACE_PERIOD = 2.days
@@ -172,16 +169,11 @@ class LandingAssessment
     end
     return :ongoing if quarter.ongoing?
 
-    if quarter.cover?(today)
-      collect_current_quarter_reasons
-      reasons.any? ? :at_risk : :on_track
-    else
-      until_start = (quarter.starts_on - today).to_i
-      if until_start <= LEAD_DAYS && !%w[now next].include?(idea.horizon)
-        @reasons << "Starts in #{until_start} days, still in #{idea.horizon_label}"
-      end
-      reasons.any? ? :at_risk : :planned
-    end
+    # Only the quarter we are in can be at risk; later ones are just planned.
+    return :planned unless quarter.cover?(today)
+
+    collect_current_quarter_reasons
+    reasons.any? ? :at_risk : :on_track
   end
 
   def collect_current_quarter_reasons

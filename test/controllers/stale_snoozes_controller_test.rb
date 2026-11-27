@@ -28,6 +28,23 @@ class StaleSnoozesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "snoozes a roadmap idea's landing warnings in their current state" do
+    discovery = LaserFocus::Config::DiscoverySection.new(
+      "roadmap_query" => "project = PGR", "time_id_field" => "customfield_1", "time_id_layout" => "QYY"
+    )
+    DiscoveryIdea.create!(jira_key: "PGR-41", summary: "pgAdmin images", horizon: "now", codename: "Amber Ant")
+    LASER_FOCUS_CONFIG.define_singleton_method(:discovery) { discovery }
+
+    patch "/stale_snooze", params: { key: "PGR-41", reason: "Time-ID comes with planning" }, as: :json
+
+    assert_response :no_content
+    snooze = StaleSnooze.find_by!(jira_key: "PGR-41")
+    assert_equal "landing:no_time_id:", snooze.jira_status
+    assert_equal "Time-ID comes with planning", snooze.reason
+  ensure
+    LASER_FOCUS_CONFIG.singleton_class.send(:remove_method, :discovery) if LASER_FOCUS_CONFIG.singleton_methods.include?(:discovery)
+  end
+
   test "a blank reason is stored as none" do
     patch "/stale_snooze", params: { key: "PG-11", reason: "   " }, as: :json
     assert_nil StaleSnooze.find_by!(jira_key: "PG-11").reason

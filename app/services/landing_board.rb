@@ -8,18 +8,19 @@ class LandingBoard
 
   HORIZON_PREFERENCE = { "now" => 0, "next" => 1 }.freeze
 
-  def self.build(today: Date.current, discovery: LASER_FOCUS_CONFIG.discovery)
+  def self.build(today: Date.current, discovery: LASER_FOCUS_CONFIG.discovery, snoozes: StaleSnooze.running.to_a)
     return nil unless discovery&.landing?
 
     ideas = DiscoveryIdea.active.includes(:idea_deliveries, :idea_events).to_a
-    new(ideas: ideas, today: today, calendar: LandingCalendar.build(discovery, ideas))
+    new(ideas: ideas, today: today, calendar: LandingCalendar.build(discovery, ideas), snoozes: snoozes)
   end
 
   attr_reader :assessments, :today, :calendar
 
-  def initialize(ideas:, today:, calendar:)
+  def initialize(ideas:, today:, calendar:, snoozes: [])
     @today = today
     @calendar = calendar
+    @snoozes = snoozes.index_by(&:jira_key)
     @assessments = ideas.map { |idea| LandingAssessment.new(idea, calendar: calendar, today: today) }
   end
 
@@ -50,39 +51,62 @@ class LandingBoard
 
   # Notices for the roadmap line: late and at-risk ideas, and ideas whose
   # target cannot be trusted (no Time-ID, or a Codename that disagrees).
+  # Snoozed ones carry their snooze.
   def findings(in_view: ->(_) { true })
-    assessments.select { |a| in_view.call(a.idea) && !a.idea.closed? }.flat_map do |a|
-      idea = a.idea
-      list = []
-      case a.state
-      when :late
-        detail = if a.quarter.ongoing?
-          "Ongoing for #{a.quarter.year}, which is over, and not landed."
-        else
-          "Targeted #{a.quarter.period_label}#{codename_suffix(a.quarter)}, #{a.late_by} days past the end of the quarter and not landed."
-        end
-        list << Finding.new(kind: :late, severity: :high, key: idea.jira_key,
-                            headline: "#{idea.summary} is late", detail: detail)
-      when :at_risk
-        list << Finding.new(kind: :at_risk, severity: :medium, key: idea.jira_key,
-                            headline: "#{idea.summary} is at risk for #{a.quarter.short_label}",
-                            detail: "#{a.reasons.join(' · ')} · #{a.days_left} days left.")
-      when :not_set
-        if %w[now next].include?(idea.horizon) || idea.codename.present? || idea.time_id
-          list << Finding.new(kind: :no_time_id, severity: :low, key: idea.jira_key,
-                              headline: "#{idea.summary}: Time-ID not set", detail: not_set_detail(idea))
-        end
-      end
-      if a.mismatch && a.quarter
-        list << Finding.new(kind: :codename_mismatch, severity: :low, key: idea.jira_key,
-                            headline: "#{idea.summary}: Time-ID and Codename disagree",
-                            detail: "#{a.mismatch}. LaserFocus goes by the Time-ID; fix the Codename in Discovery.")
-      end
-      list
+    assessments.select { |a| in_view.call(a.idea) }.flat_map do |a|
+      snooze = snooze_for(a)
+      findings_for(a).each { |f| f.snooze = snooze }
     end
   end
 
+  # What an idea's warnings are right now. A snooze holds for this state only,
+  # so a new or worse warning (at risk turning late, a changed Time-ID) shows
+  # again.
+  def warning_state(a)
+    kinds = findings_for(a).map(&:kind)
+    kinds.any? ? "landing:#{kinds.sort.join(',')}:#{a.idea.time_id}" : nil
+  end
+
+  def snooze_for(a)
+    snooze = @snoozes[a.idea.jira_key]
+    snooze if snooze && snooze.jira_status == warning_state(a)
+  end
+
+  def find(jira_key) = assessments.find { |a| a.idea.jira_key == jira_key }
+
   private
+
+  def findings_for(a)
+    return [] if a.idea.closed?
+
+    idea = a.idea
+    list = []
+    case a.state
+    when :late
+      detail = if a.quarter.ongoing?
+        "Ongoing for #{a.quarter.year}, which is over, and not landed."
+      else
+        "Targeted #{a.quarter.period_label}#{codename_suffix(a.quarter)}, #{a.late_by} days past the end of the quarter and not landed."
+      end
+      list << Finding.new(kind: :late, severity: :high, key: idea.jira_key,
+                          headline: "#{idea.summary} is late", detail: detail)
+    when :at_risk
+      list << Finding.new(kind: :at_risk, severity: :medium, key: idea.jira_key,
+                          headline: "#{idea.summary} is at risk for #{a.quarter.short_label}",
+                          detail: "#{a.reasons.join(' · ')} · #{a.days_left} days left.")
+    when :not_set
+      if %w[now next].include?(idea.horizon) || idea.codename.present? || idea.time_id
+        list << Finding.new(kind: :no_time_id, severity: :low, key: idea.jira_key,
+                            headline: "#{idea.summary}: Time-ID not set", detail: not_set_detail(idea))
+      end
+    end
+    if a.mismatch && a.quarter
+      list << Finding.new(kind: :codename_mismatch, severity: :low, key: idea.jira_key,
+                          headline: "#{idea.summary}: Time-ID and Codename disagree",
+                          detail: "#{a.mismatch}. LaserFocus goes by the Time-ID; fix the Codename in Discovery.")
+    end
+    list
+  end
 
   def by_delivery_key
     @by_delivery_key ||= assessments

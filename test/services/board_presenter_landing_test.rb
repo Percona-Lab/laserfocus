@@ -72,6 +72,34 @@ class BoardPresenterLandingTest < ActiveSupport::TestCase
     assert(alignment.findings.any? { |f| f.kind == :no_time_id && f.key == "PGR-41" })
   end
 
+  test "a snooze quiets an idea's warnings until they change" do
+    i = idea("PGR-39", delivers: "PG-2", time_id: 426)
+    i.idea_deliveries.update_all(in_progress_count: 0, done_count: 0, todo_count: 3)
+    board = LandingBoard.new(ideas: DiscoveryIdea.active.includes(:idea_deliveries, :idea_events).to_a,
+                             today: Date.new(2026, 11, 27), calendar: CALENDAR)
+    state = board.warning_state(board.find("PGR-39"))
+    assert_equal "landing:at_risk:426", state
+
+    snooze = StaleSnooze.new(jira_key: "PGR-39", jira_status: state, snoozed_until: 3.days.from_now, snoozed_by: "Kai")
+    snoozed = LandingBoard.new(ideas: DiscoveryIdea.active.includes(:idea_deliveries, :idea_events).to_a,
+                               today: Date.new(2026, 11, 27), calendar: CALENDAR, snoozes: [ snooze ])
+    assert_equal [ snooze ], snoozed.findings.map(&:snooze).uniq
+
+    late = LandingBoard.new(ideas: DiscoveryIdea.active.includes(:idea_deliveries, :idea_events).to_a,
+                            today: Date.new(2027, 1, 10), calendar: CALENDAR, snoozes: [ snooze ])
+    assert_nil late.findings.first.snooze, "late is a new warning, so the at-risk snooze no longer holds"
+  end
+
+  test "snoozed notices leave the roadmap line quiet" do
+    idea("PGR-41", delivers: "PG-1")
+    presenter = build(column_sort: :manual)
+    finding = presenter.alignment.findings.find { |f| f.key == "PGR-41" }
+    finding.snooze = StaleSnooze.new(jira_key: "PGR-41")
+
+    assert_includes presenter.alignment.snoozed_findings, finding
+    refute_includes presenter.alignment.active_findings, finding
+  end
+
   test "without landing quarters configured the order stays manual" do
     presenter = BoardPresenter.new(
       epics: Epic.active.ordered.includes(:issues), column_order: %w[PG-2 PG-1], column_sort: :landing,

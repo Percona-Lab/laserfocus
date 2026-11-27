@@ -163,6 +163,10 @@ class BoardPresenter
   end
 
   def landing_enabled? = @landing.present?
+
+  # The snooze quieting a column's landing warnings, and whether it has any.
+  def landing_snooze(assessment) = @landing&.snooze_for(assessment)
+  def landing_warned?(assessment) = @landing&.warning_state(assessment).present?
   def landing_sort? = @column_sort == :landing
 
   # Which lane a column sits in when the board is ordered by landing quarter:

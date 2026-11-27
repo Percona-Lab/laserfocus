@@ -32,15 +32,18 @@ class StaleSnoozesController < ApplicationController
     BoardBroadcasts.board
   end
 
-  # A Jira ticket on the board, or an open PR or issue on the Reviews or Issues
-  # view. Returns the key to store and the state the snooze holds for.
+  # A Jira ticket on the board, an open PR or issue on the Reviews or Issues
+  # view, or a roadmap idea with landing warnings. Returns the key to store and
+  # the state the snooze holds for.
   def snooze_target(raw)
     if GithubKeyed.key?(raw)
       item = GithubKeyed.find(raw)
       item && [ item.key, item.snooze_state ]
-    else
-      issue = Issue.active.find_by(jira_key: raw)
-      issue && [ issue.jira_key, issue.jira_status ]
+    elsif (issue = Issue.active.find_by(jira_key: raw))
+      [ issue.jira_key, issue.jira_status ]
+    elsif (board = LandingBoard.build) && (assessment = board.find(raw))
+      state = board.warning_state(assessment)
+      state && [ raw, state ]
     end
   end
 end

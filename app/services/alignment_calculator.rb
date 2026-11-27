@@ -2,7 +2,8 @@
 # ("Now" in Jira Product Discovery), what the epic's own status claims, and what
 # the tickets are actually doing. Silence means all three agree.
 class AlignmentCalculator
-  Finding = Struct.new(:kind, :severity, :key, :headline, :detail, keyword_init: true)
+  # snooze: the StaleSnooze quieting this finding, if any.
+  Finding = Struct.new(:kind, :severity, :key, :headline, :detail, :snooze, keyword_init: true)
 
   SEVERITY_ORDER = { high: 0, medium: 1, low: 2 }.freeze
 
@@ -26,7 +27,10 @@ class AlignmentCalculator
 
   def needs_attention = now_total - now_on_board
 
-  def aligned? = needs_attention.zero? && findings.empty?
+  def aligned? = needs_attention.zero? && active_findings.empty?
+
+  def active_findings = findings.reject(&:snooze)
+  def snoozed_findings = findings.select(&:snooze)
 
   def findings
     @findings ||= (idea_findings + column_findings + @landing_findings)

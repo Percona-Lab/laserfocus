@@ -1215,3 +1215,13 @@ a.rm-tl-row:hover { background: var(--kb-input-hover); }
 .rm-detail-when { width: 90px; color: var(--kb-text-mute); }
 .rm-detail-by { color: var(--kb-text-faint); }
 .rm-mini { display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: var(--kb-dist-track); width: 90px; margin-top: 4px; }
+
+/* Snoozed landing warnings fade back, like snoozed stale cards. */
+.lq-snoozed { opacity: .6; filter: saturate(.4); }
+.lq-snoozed .kb-snooze-icon { margin-right: 1px; }
+.kb-roadmap-finding.is-snoozed { opacity: .55; }
+.kb-roadmap-finding.is-snoozed .kb-roadmap-dot { background: var(--kb-text-faint); }
+.lq-finding-snooze { display: inline-flex; align-items: center; gap: 3px; font: 600 10.5px var(--kb-ui); color: var(--kb-text-mute); }
+.lq-finding-hint { display: none; margin-top: 2px; font: 600 10px var(--kb-ui); color: var(--kb-text-faint); }
+.kb-roadmap-finding:hover .lq-finding-hint { display: block; }
+.lq-snoozed-count { color: var(--kb-text-faint); font-weight: 600; }

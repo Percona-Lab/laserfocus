@@ -54,6 +54,15 @@ class StaleSnoozeTest < ActiveSupport::TestCase
     assert_equal [ "PG-11" ], StaleSnooze.pluck(:jira_key)
   end
 
+  test "prune leaves snoozes on roadmap ideas alone" do
+    DiscoveryIdea.create!(jira_key: "PGR-41", summary: "pgAdmin images", horizon: "now")
+    StaleSnooze.create!(jira_key: "PGR-41", jira_status: "landing:no_time_id:", snoozed_until: 3.days.from_now, snoozed_by: "Kai")
+
+    StaleSnooze.prune!
+
+    assert StaleSnooze.exists?(jira_key: "PGR-41")
+  end
+
   test "prune leaves PR snoozes to ReviewSync" do
     StaleSnooze.create!(jira_key: "acme/server#9", jira_status: "needs:reviewers:0",
                         snoozed_until: 3.days.from_now, snoozed_by: "Alice")

@@ -20,11 +20,16 @@ class StaleSnooze < ApplicationRecord
 
   # Drops snoozes that can no longer apply: run out, the ticket changed status,
   # or the ticket left the board. PR and issue snoozes (see GithubKeyed) share
-  # the table and are pruned by ReviewSync and IssueSync instead.
+  # the table and are pruned by ReviewSync and IssueSync instead. Snoozes on a
+  # roadmap idea's landing warnings simply stop applying once the warnings
+  # change, and run out like the rest.
   def self.prune!(now: Time.current)
     where(snoozed_until: ..now).delete_all
     statuses = Issue.active.where(jira_key: select(:jira_key)).pluck(:jira_key, :jira_status).to_h
-    dead = all.reject { |s| GithubKeyed.key?(s.jira_key) || statuses[s.jira_key] == s.jira_status }.map(&:id)
+    ideas = DiscoveryIdea.where(jira_key: select(:jira_key)).pluck(:jira_key).to_set
+    dead = all.reject do |s|
+      GithubKeyed.key?(s.jira_key) || ideas.include?(s.jira_key) || statuses[s.jira_key] == s.jira_status
+    end.map(&:id)
     where(id: dead).delete_all if dead.any?
   end
 end

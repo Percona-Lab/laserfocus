@@ -29,20 +29,32 @@ section.kb-roadmap data-tone=tone data-controller="roadmap"
             span.kb-roadmap-attention.lq-late-text= "#{s.late} late"
           = " · #{s.days_left} days left"
     - if a.findings.any?
+      - active = a.active_findings.size
+      - snoozed = a.snoozed_findings.size
       span.kb-roadmap-trail
-        = "#{a.findings.size} #{'notice'.pluralize(a.findings.size)}"
+        = "#{active} #{'notice'.pluralize(active)}"
+        - if snoozed.positive?
+          span.lq-snoozed-count= " · #{snoozed} snoozed"
         svg.kb-roadmap-chev width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
           path d="M2 3.5L4.5 6L7 3.5"
 
   - if a.findings.any? || a.landing_summary
     .kb-roadmap-body data-roadmap-target="body" hidden=true
-      - a.findings.each do |f|
-        .kb-roadmap-finding data-severity=f.severity
+      / Landing warnings can be snoozed with a right-click, like stale tickets.
+      - (a.active_findings + a.snoozed_findings).each do |f|
+        - landing = LandingHelper::LANDING_FINDING_KINDS.include?(f.kind)
+        = tag.div class: [ "kb-roadmap-finding", ("is-snoozed" if f.snooze) ], data: { severity: f.severity, **(landing ? landing_snooze_data(f.key, f.snooze, f.headline) : {}) } do
           span.kb-roadmap-dot
           .kb-roadmap-finding-text
             .kb-roadmap-finding-head
               a.kb-roadmap-finding-key href=jira_url(f.key) target="_blank" rel="noreferrer"= f.key
               span.kb-roadmap-finding-title= f.headline
+              - if f.snooze
+                span.lq-finding-snooze
+                  = snooze_icon_svg(size: 9)
+                  = " snoozed #{snooze_summary(f.snooze)}"
             .kb-roadmap-finding-detail= f.detail
+            - if landing && !f.snooze
+              .lq-finding-hint Right-click to snooze
       - if a.landing_summary
         a.lq-roadmap-link href=roadmap_path Open the roadmap timeline →

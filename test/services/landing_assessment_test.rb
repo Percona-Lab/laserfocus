@@ -79,11 +79,11 @@ class LandingAssessmentTest < ActiveSupport::TestCase
     assert_includes assess(i).reasons, "Targets this quarter but the roadmap still has it in Later"
   end
 
-  test "a future quarter is planned, unless it starts soon and the idea is still in Later" do
+  test "only the current quarter can be at risk; a later one is planned, whatever its horizon" do
     assert_equal :planned, assess(idea("PGR-1", time_id: 227, horizon: "later")).state
-    soon = assess(idea("PGR-2", time_id: 127, horizon: "later"), today: Date.new(2026, 12, 10))
-    assert_equal :at_risk, soon.state
-    assert_equal [ "Starts in 22 days, still in Later" ], soon.reasons
+    soon = assess(idea("PGR-2", time_id: 127, horizon: "incubator"), today: Date.new(2026, 12, 30))
+    assert_equal :planned, soon.state
+    assert_empty soon.reasons
   end
 
   test "late once the quarter is over and it has not landed" do

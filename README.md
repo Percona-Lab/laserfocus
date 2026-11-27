@@ -57,6 +57,10 @@ joined or left the board.
   riskiest first, with a divider per quarter; each browser remembers it. The
   roadmap line adds the current quarter's summary and notices for late and
   at-risk items, missing Time-IDs and Codenames that disagree with the Time-ID.
+  Only items targeting the current quarter can be at risk; later quarters are
+  just planned. Right-click a notice, or an epic's landing tag, to **snooze**
+  that item's warnings with a reason, like a stale ticket; the snooze lifts
+  early if the warning changes (at risk turns late, a new Time-ID).
 
 ### Community
 

@@ -56,8 +56,10 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
         span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;margin-left:auto;" title=epic_avatar[:name]
           = epic_avatar[:initials]
     - if column.landing && column.lane != :ongoing
-      .lq-col-ribbon
-        = landing_tag(column.landing)
+      - snooze = @presenter.landing_snooze(column.landing)
+      - snoozable = snooze || @presenter.landing_warned?(column.landing)
+      = tag.div class: "lq-col-ribbon", data: (landing_snooze_data(column.landing.idea.jira_key, snooze, column.landing.label) if snoozable) do
+        = landing_tag(column.landing, snooze: snooze)
         = landing_days(column.landing)
     - if column.roadmap_idea || column.lane == :ongoing || not_started
       .kb-col-tags

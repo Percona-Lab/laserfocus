@@ -5,7 +5,7 @@ import { Controller } from "@hotwired/stimulus"
 // refresh after each change, so this controller never redraws cards itself.
 export default class extends Controller {
   static targets = [
-    "menu", "snoozePane", "infoPane", "snoozeSub", "snoozeNote", "reason",
+    "menu", "snoozePane", "infoPane", "snoozeTitle", "snoozeSub", "snoozeNote", "reason",
     "submit", "submitLabel", "infoTitle", "infoSub", "infoReason", "infoNote", "error"
   ]
   static values = { days: { type: Number, default: 7 } }
@@ -54,14 +54,17 @@ export default class extends Controller {
       this.infoSubTarget.textContent = `by ${ds.snoozedBy} · ${left === 1 ? "1 day" : `${left} days`} left`
       this.infoReasonTarget.textContent = ds.snoozeReason || ""
       this.infoReasonTarget.hidden = !ds.snoozeReason
-      this.infoNoteTarget.textContent =
-        `${ds.daysSinceChange} days in ${ds.snoozeState}. The highlight comes back when the snooze runs out. ` +
-        (ds.snoozeMoved || "If the ticket moves, it starts fresh in its new status.")
+      this.infoNoteTarget.textContent = ds.snoozeInfoNote ||
+        (`${ds.daysSinceChange} days in ${ds.snoozeState}. The highlight comes back when the snooze runs out. ` +
+        (ds.snoozeMoved || "If the ticket moves, it starts fresh in its new status."))
     } else {
       // PR and issue cards say themselves what ends their snooze early.
       const noun = ds.snoozeNoun || "ticket"
       const ends = ds.snoozeEnds || (noun === "ticket" ? "the ticket changes status" : `the ${noun} gets a new push or review`)
-      this.snoozeSubTarget.textContent = `${ds.snoozeKey} has been in ${ds.snoozeState} for ${ds.daysSinceChange} days.`
+      // Roadmap warnings bring their own title and line.
+      this.snoozeTitleTarget.textContent = ds.snoozeTitle || "Snooze staleness"
+      this.snoozeSubTarget.textContent = ds.snoozeSubText ||
+        `${ds.snoozeKey} has been in ${ds.snoozeState} for ${ds.daysSinceChange} days.`
       this.snoozeNoteTarget.textContent = `Shown as fresh until ${this._untilLabel()}, or until ${ends}.`
       this.submitLabelTarget.textContent = `Snooze ${this.daysValue} ${this.daysValue === 1 ? "day" : "days"}`
       this.reasonTarget.value = ""
