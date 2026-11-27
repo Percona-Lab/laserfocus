@@ -26,7 +26,7 @@ class BoardPresenter
     def snoozed? = staleness == :snoozed
   end
 
-  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea) do
+  Column = Struct.new(:epic, :new_issues, :middle_groups, :done_issues, :collapsed, :lane, :roadmap_idea, :landing) do
     def new_count    = new_issues.size
     def middle_count = middle_groups.values.sum(&:size)
     def done_count   = done_issues.size
@@ -68,11 +68,15 @@ class BoardPresenter
 
   UNPLANNED_EPIC = Struct.new(:jira_key, :name).new("UNPLANNED", "Unplanned Work")
   GROUP_MODES = %w[staleness definition merged].freeze
+  # Column order: the shared drag order, or by landing quarter (per browser).
+  COLUMN_SORTS = %w[manual landing].freeze
+  DEFAULT_COLUMN_SORT = "manual".freeze
   DEFAULT_GROUP_MODE = "staleness".freeze
   MERGED_GROUP = "merged".freeze
 
   def self.build(config: LASER_FOCUS_CONFIG.board, group_mode: :staleness, expand_all: false,
-                 view: :board, epics: Epic.active.ordered.includes(:issues))
+                 view: :board, epics: Epic.active.ordered.includes(:issues), column_sort: :manual,
+                 landing: LandingBoard.build)
     order = BoardOrder.instance
     new(
       epics: epics,
@@ -86,6 +90,8 @@ class BoardPresenter
       collapsed_keys: order.collapsed_columns,
       expand_all: expand_all,
       group_mode: group_mode,
+      column_sort: column_sort,
+      landing: landing,
       status_map: config.status_map,
       new_statuses: config.new_statuses,
       done_statuses: config.done_statuses,
@@ -104,7 +110,7 @@ class BoardPresenter
   def initialize(epics:, status_map:, new_statuses:, done_statuses:, staleness:,
                  orphan_issues: [], snoozes: [], column_order: [], collapsed_keys: [], expand_all: false,
                  ongoing_label: nil, community_label: nil, view: :board, now_ideas: [],
-                 group_mode: :staleness)
+                 group_mode: :staleness, column_sort: :manual, landing: nil)
     @view = view.to_sym
     @community_label = community_label
     @ongoing_label = ongoing_label
@@ -121,6 +127,8 @@ class BoardPresenter
     @collapsed_keys = collapsed_keys.to_set
     @expand_all = !!expand_all
     @group_mode = group_mode.to_sym
+    @landing = landing
+    @column_sort = landing && column_sort.to_sym == :landing ? :landing : :manual
     @status_map = status_map
     @new_statuses = new_statuses
     @done_statuses = done_statuses
@@ -134,7 +142,8 @@ class BoardPresenter
       cols = @epics.map { |e| build_column(e, e.issues.reject { |i| i.removed_at }) }
       orphans = @orphan_issues.reject { |i| i.removed_at }
       cols << build_column(UNPLANNED_EPIC, orphans) if orphans.any?
-      sort_columns(cols)
+      sorted = sort_columns(cols)
+      landing_sort? ? sort_by_landing(sorted) : sorted
     end
   end
 
@@ -146,7 +155,24 @@ class BoardPresenter
   def community_enabled? = @community_label.present?
 
   def alignment
-    @alignment ||= AlignmentCalculator.new(columns: columns, now_ideas: @now_ideas)
+    @alignment ||= AlignmentCalculator.new(
+      columns: columns, now_ideas: @now_ideas,
+      landing_summary: @landing&.summary(in_view: method(:idea_in_view?)),
+      landing_findings: @landing ? @landing.findings(in_view: method(:idea_in_view?)) : []
+    )
+  end
+
+  def landing_enabled? = @landing.present?
+  def landing_sort? = @column_sort == :landing
+
+  # Which lane a column sits in when the board is ordered by landing quarter:
+  # a LandingQuarter, or :not_set, :no_idea, :ongoing or :unplanned.
+  def landing_lane(column)
+    return :unplanned if column.unplanned?
+    return :ongoing if column.lane == :ongoing
+    return :no_idea if column.landing.nil?
+
+    column.landing.quarter || :not_set
   end
 
   # Which lane a column belongs to. Derived rather than stored, and it checks
@@ -171,7 +197,9 @@ class BoardPresenter
   # Adjacent collapsed columns share one slot on the board, so the view gets
   # them pre-chunked: [[expanded], [collapsed, collapsed], [expanded], ...]
   def column_groups
-    @column_groups ||= columns.slice_when { |a, b| !(stacked?(a) && stacked?(b)) }.to_a
+    @column_groups ||= columns.slice_when do |a, b|
+      !(stacked?(a) && stacked?(b)) || (landing_sort? && landing_lane(a) != landing_lane(b))
+    end.to_a
   end
 
   def configured_display_statuses
@@ -193,6 +221,25 @@ class BoardPresenter
   # roadmap line does not report community commitments as missing a column.
   def community_idea?(idea)
     idea.idea_deliveries.any? { |d| @community_keys.include?(d.jira_key) }
+  end
+
+  def idea_in_view?(idea) = community_idea?(idea) == community?
+
+  LANE_RANK = { quarter: 0, not_set: 1, no_idea: 2, ongoing: 3 }.freeze
+
+  # Earliest quarter first, riskiest first within a quarter; ideas without a
+  # Time-ID, epics with no roadmap item and ongoing work after. Ties keep the
+  # stored drag order.
+  def sort_by_landing(cols)
+    unplanned, rest = cols.partition(&:unplanned?)
+    unplanned + rest.each_with_index.sort_by do |col, index|
+      lane = landing_lane(col)
+      if lane.is_a?(LandingQuarter)
+        [ LANE_RANK[:quarter], lane.ongoing? ? 1 : 0, lane.ends_on.jd, col.landing.severity, index ]
+      else
+        [ LANE_RANK.fetch(lane), 0, 0, 0, index ]
+      end
+    end.map(&:first)
   end
 
   def ideas_by_delivery_key
@@ -222,7 +269,8 @@ class BoardPresenter
       epic, new_group, middle_groups, done_group,
       @collapsed_keys.include?(epic.jira_key),
       lane_for(epic, middle_groups),
-      roadmap_idea_for(epic.jira_key)
+      roadmap_idea_for(epic.jira_key),
+      @landing && epic.jira_key != UNPLANNED_EPIC.jira_key ? @landing.for_epic(epic.jira_key) : nil
     )
   end
 

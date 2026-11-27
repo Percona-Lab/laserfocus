@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_26_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_27_000001) do
   create_table "board_orders", force: :cascade do |t|
     t.json "collapsed_columns", default: [], null: false
     t.json "column_order", default: [], null: false
@@ -25,6 +25,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_000001) do
   end
 
   create_table "discovery_ideas", force: :cascade do |t|
+    t.string "codename"
     t.datetime "created_at", null: false
     t.string "horizon", null: false
     t.string "incubator_status"
@@ -34,6 +35,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_000001) do
     t.json "raw_fields"
     t.datetime "removed_at"
     t.string "summary", null: false
+    t.integer "time_id"
     t.datetime "updated_at", null: false
     t.index ["horizon"], name: "index_discovery_ideas_on_horizon"
     t.index ["jira_key"], name: "index_discovery_ideas_on_jira_key", unique: true
@@ -91,12 +93,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_26_000001) do
   create_table "idea_deliveries", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "discovery_idea_id", null: false
+    t.integer "done_count", default: 0, null: false
+    t.integer "in_progress_count", default: 0, null: false
     t.string "issue_type"
     t.string "jira_key", null: false
+    t.datetime "resolved_at"
+    t.string "status_category"
+    t.string "status_name"
+    t.string "summary"
+    t.integer "todo_count", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["discovery_idea_id", "jira_key"], name: "index_idea_deliveries_on_discovery_idea_id_and_jira_key", unique: true
     t.index ["discovery_idea_id"], name: "index_idea_deliveries_on_discovery_idea_id"
     t.index ["jira_key"], name: "index_idea_deliveries_on_jira_key"
+  end
+
+  create_table "idea_events", force: :cascade do |t|
+    t.string "author"
+    t.datetime "created_at", null: false
+    t.string "field", null: false
+    t.string "from_value"
+    t.string "jira_key", null: false
+    t.datetime "occurred_at", null: false
+    t.string "to_value"
+    t.datetime "updated_at", null: false
+    t.index ["jira_key", "occurred_at"], name: "index_idea_events_on_jira_key_and_occurred_at"
   end
 
   create_table "issues", force: :cascade do |t|

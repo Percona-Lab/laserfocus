@@ -136,6 +136,18 @@ class LaserFocusConfigTest < ActiveSupport::TestCase
     assert_equal %w[summary issuelinks customfield_11275 customfield_11290 customfield_10019], d.issue_fields
   end
 
+  test "landing quarters need their fields and can be switched off" do
+    base = File.read(Rails.root.join("config/laserfocus.test.yml")) + <<~YAML
+      discovery:
+        roadmap_query: 'project = PGR'
+        time_id_field: "customfield_1"
+        time_id_layout: "QYY"
+    YAML
+    assert LaserFocus::Config.load_from_string(base).discovery.landing?
+    refute LaserFocus::Config.load_from_string(base + "  landing_quarters: false\n").discovery.landing?
+    refute LaserFocus::Config.load_from_string(base.sub(/  time_id_layout.*\n/, "")).discovery.landing?
+  end
+
   test "reviews is off without its section" do
     assert_nil LaserFocus::Config.load_from_string(BASE).reviews
   end

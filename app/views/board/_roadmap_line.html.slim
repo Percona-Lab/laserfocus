@@ -12,13 +12,29 @@ section.kb-roadmap data-tone=tone data-controller="roadmap"
       - if a.needs_attention > 0
         span.kb-roadmap-sep ·
         span.kb-roadmap-attention= "#{a.needs_attention} need attention"
+      - if (s = a.landing_summary)
+        span.kb-roadmap-sep ·
+        span.lq-summary
+          span.lq-tag class="lq-s-#{s.at_risk.positive? || s.late.positive? ? 'risk' : 'track'}"
+            span.lq-mono= s.quarter.letter
+            = s.quarter.short_label
+          = " #{s.quarter.codename}: " if s.quarter.codename
+          = " " unless s.quarter.codename
+          = "#{s.targeted} targeted · #{s.landed} landed"
+          - if s.at_risk.positive?
+            | &nbsp;·&nbsp;
+            span.kb-roadmap-attention= "#{s.at_risk} at risk"
+          - if s.late.positive?
+            | &nbsp;·&nbsp;
+            span.kb-roadmap-attention.lq-late-text= "#{s.late} late"
+          = " · #{s.days_left} days left"
     - if a.findings.any?
       span.kb-roadmap-trail
         = "#{a.findings.size} #{'notice'.pluralize(a.findings.size)}"
         svg.kb-roadmap-chev width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"
           path d="M2 3.5L4.5 6L7 3.5"
 
-  - if a.findings.any?
+  - if a.findings.any? || a.landing_summary
     .kb-roadmap-body data-roadmap-target="body" hidden=true
       - a.findings.each do |f|
         .kb-roadmap-finding data-severity=f.severity
@@ -28,3 +44,5 @@ section.kb-roadmap data-tone=tone data-controller="roadmap"
               a.kb-roadmap-finding-key href=jira_url(f.key) target="_blank" rel="noreferrer"= f.key
               span.kb-roadmap-finding-title= f.headline
             .kb-roadmap-finding-detail= f.detail
+      - if a.landing_summary
+        a.lq-roadmap-link href=roadmap_path Open the roadmap timeline →

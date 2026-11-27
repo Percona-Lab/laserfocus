@@ -5,7 +5,9 @@ class BoardController < ApplicationController
     @group_mode = group_mode_from_cookie
     @expand_all = expand_all_param?
     @view = params[:view] == "community" ? :community : :board
-    @presenter = BoardPresenter.build(group_mode: @group_mode, expand_all: @expand_all, view: @view)
+    @column_sort = column_sort_from_cookie
+    @presenter = BoardPresenter.build(group_mode: @group_mode, expand_all: @expand_all, view: @view,
+                                      column_sort: @column_sort)
     # Unmapped statuses are a config problem for the whole board, so every view
     # shows the same count (which also keeps the header, and the tabs, put).
     @warnings = @view == :board ? @presenter.warnings : BoardPresenter.build.warnings
@@ -18,6 +20,11 @@ class BoardController < ApplicationController
   def group_mode_from_cookie
     raw = cookies[:board_group_mode].to_s
     BoardPresenter::GROUP_MODES.include?(raw) ? raw : BoardPresenter::DEFAULT_GROUP_MODE
+  end
+
+  def column_sort_from_cookie
+    raw = cookies[:board_column_sort].to_s
+    BoardPresenter::COLUMN_SORTS.include?(raw) ? raw : BoardPresenter::DEFAULT_COLUMN_SORT
   end
 
   def expand_all_param?

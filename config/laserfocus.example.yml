@@ -71,6 +71,17 @@ discovery:
   horizon_field: "customfield_11275"
   incubator_field: "customfield_11290"
   rank_field: "customfield_10019"
+  # Optional. Landing quarters, internal only. roadmap_query reads every idea
+  # with its changelog. time_id_layout says how to read the Time-ID field; it is
+  # deliberately not documented here, take it from the internal docs. Without
+  # it the feature stays off. Codenames are learned from the ideas themselves.
+  # Set landing_quarters: false for a team that does not use Time-IDs: nothing
+  # is synced, tagged or flagged then.
+  landing_quarters: true
+  roadmap_query: 'project = PGR AND issuetype = Idea'
+  time_id_field: "customfield_11385"
+  time_id_layout: "<see internal docs>"
+  codename_field: "customfield_11386"
 
 # Optional. The Reviews view: open, ready-for-review (non-draft) PRs in these
 # GitHub repos, grouped by who they wait on. Needs GITHUB_TOKEN in .env (a

@@ -6,10 +6,15 @@ class AlignmentCalculator
 
   SEVERITY_ORDER = { high: 0, medium: 1, low: 2 }.freeze
 
-  def initialize(columns:, now_ideas:)
+  def initialize(columns:, now_ideas:, landing_summary: nil, landing_findings: [])
     @columns = columns
     @now_ideas = now_ideas
+    @landing_summary = landing_summary
+    @landing_findings = landing_findings
   end
+
+  # The current landing quarter at a glance (LandingBoard::Summary), or nil.
+  attr_reader :landing_summary
 
   def configured? = @now_ideas.present?
 
@@ -24,7 +29,7 @@ class AlignmentCalculator
   def aligned? = needs_attention.zero? && findings.empty?
 
   def findings
-    @findings ||= (idea_findings + column_findings)
+    @findings ||= (idea_findings + column_findings + @landing_findings)
       .sort_by { |f| [ SEVERITY_ORDER.fetch(f.severity, 9), f.key.to_s ] }
   end
 

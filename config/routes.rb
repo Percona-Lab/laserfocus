@@ -5,6 +5,9 @@ Rails.application.routes.draw do
   get  "/reviews", to: "reviews#show"
   get  "/issues",  to: "github_issues#show", as: :github_issues
   get  "/history", to: "epic_history#show"
+  # Not linked from the tabs: internal landing targets, reached from the
+  # roadmap line or by URL.
+  get  "/roadmap", to: "roadmap#show"
   post "/sync", to: "syncs#create"
   patch "/column_order", to: "column_orders#update"
   patch "/column_collapse", to: "column_collapses#update"

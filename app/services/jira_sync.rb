@@ -225,9 +225,24 @@ class JiraSync
   # keys of everything sitting in "Now". A failure here must not take the board
   # sync with it, so it degrades to an empty list.
   def sync_discovery!(now)
-    return [] if @discovery.nil? || @discovery.queries.empty?
+    return [] if @discovery.nil? || (@discovery.queries.empty? && !@discovery.landing?)
 
     seen = []
+    # Every idea, whatever its horizon, so a landing quarter set on something
+    # still in Later is seen, and so are recent landings. The now/next queries
+    # below still decide which ideas count as Now and Next.
+    if @discovery.landing?
+      ideas = @client.search_all(@discovery.roadmap_query, fields: @discovery.issue_fields, expand: "changelog")
+      if ideas.empty?
+        Rails.logger.warn("[JiraSync] discovery roadmap_query matched no ideas. " \
+                          "Check the API token can browse the project: #{@discovery.roadmap_query}")
+      end
+      ideas.each do |ji|
+        seen << upsert_idea(ji, horizon_from_field(ji), now).jira_key
+        sync_idea_events!(ji, now)
+      end
+    end
+
     @discovery.queries.each do |horizon, jql|
       ideas = @client.search_all(jql, fields: @discovery.issue_fields)
       # Jira hands back an empty result rather than an error for a project the
@@ -241,6 +256,7 @@ class JiraSync
       ideas.each { |ji| seen << upsert_idea(ji, horizon, now).jira_key }
     end
     DiscoveryIdea.active.where.not(jira_key: seen).update_all(removed_at: now)
+    sync_delivery_progress! if @discovery.landing?
 
     DiscoveryIdea.now.joins(:idea_deliveries).pluck("idea_deliveries.jira_key").uniq
   rescue => e
@@ -255,6 +271,8 @@ class JiraSync
       horizon: horizon,
       incubator_status: select_field_value(ji.fields[@discovery.incubator_field]),
       rank: ji.fields[@discovery.rank_field].presence,
+      time_id: time_id_value(ji),
+      codename: @discovery.codename_field.present? ? select_field_value(ji.fields[@discovery.codename_field]).presence : nil,
       raw_fields: ji.fields,
       last_seen_in_query_at: now,
       removed_at: nil
@@ -286,6 +304,91 @@ class JiraSync
   def select_field_value(raw)
     return nil if raw.blank?
     raw.is_a?(Hash) ? raw["value"] : raw.to_s
+  end
+
+  # The idea's horizon as its roadmap field says ("now", "later", "closed").
+  def horizon_from_field(ji)
+    select_field_value(ji.fields[@discovery.horizon_field]).to_s.strip.downcase.presence || "none"
+  end
+
+  # Time-ID arrives as a float; it is a whole number.
+  def time_id_value(ji)
+    return nil if @discovery.time_id_field.blank?
+    raw = ji.fields[@discovery.time_id_field]
+    raw.nil? ? nil : Integer(raw.to_s.sub(/\.0+\z/, ""), exception: false)
+  end
+
+  # Copies the idea's Time-ID, Codename and horizon changes out of its
+  # changelog. Changes already stored are skipped, so this runs every sync.
+  def sync_idea_events!(ji, now)
+    fields = {
+      @discovery.time_id_field => "time_id",
+      @discovery.codename_field => "codename",
+      @discovery.horizon_field => "horizon"
+    }.reject { |id, _| id.blank? }
+    histories = ji.attrs.dig("changelog", "histories") || []
+    existing = IdeaEvent.where(jira_key: ji.key).pluck(:field, :occurred_at, :to_value)
+                        .to_set { |f, at, to| [ f, at.to_i, to ] }
+
+    rows = histories.flat_map do |h|
+      at = parse_time(h["created"])
+      next [] if at.nil?
+
+      (h["items"] || []).filter_map do |item|
+        field = fields[item["fieldId"]]
+        next if field.nil?
+
+        from = event_value(field, item["fromString"])
+        to = event_value(field, item["toString"])
+        next unless existing.add?([ field, at.to_i, to ])
+
+        { jira_key: ji.key, field: field, from_value: from, to_value: to,
+          author: h.dig("author", "displayName"), occurred_at: at, created_at: now, updated_at: now }
+      end
+    end
+    IdeaEvent.insert_all(rows) if rows.any?
+  rescue => e
+    Rails.logger.warn("[JiraSync] idea history for #{ji.key} failed: #{e.class}: #{e.message}")
+  end
+
+  def event_value(field, raw)
+    value = raw.to_s.strip.presence
+    field == "time_id" && value ? value.sub(/\.0+\z/, "") : value
+  end
+
+  # Status and progress of the delivery tickets behind ideas that have a
+  # landing target, whether or not their epic is on the board. Progress counts
+  # the ticket's children by status category; a ticket without children counts
+  # itself.
+  def sync_delivery_progress!
+    keys = IdeaDelivery.joins(:discovery_idea).merge(DiscoveryIdea.active)
+                       .where("discovery_ideas.time_id IS NOT NULL OR discovery_ideas.codename IS NOT NULL")
+                       .distinct.pluck(:jira_key)
+    return if keys.empty?
+
+    tickets = @client.search_all("key in (#{jira_key_list(keys)})", fields: %w[summary status resolutiondate])
+    found = tickets.map(&:key)
+    children = found.any? ? @client.search_all("parent in (#{jira_key_list(found)})", fields: %w[status parent]) : []
+    tally = Hash.new { |h, k| h[k] = Hash.new(0) }
+    children.each do |child|
+      tally[child.fields.dig("parent", "key")][child.fields.dig("status", "statusCategory", "key")] += 1
+    end
+
+    tickets.each do |ticket|
+      category = ticket.fields.dig("status", "statusCategory", "key")
+      counts = tally.key?(ticket.key) ? tally[ticket.key] : { category => 1 }
+      IdeaDelivery.where(jira_key: ticket.key).update_all(
+        summary: ticket.fields["summary"],
+        status_name: ticket.fields.dig("status", "name"),
+        status_category: category,
+        resolved_at: parse_time(ticket.fields["resolutiondate"]),
+        todo_count: counts["new"].to_i,
+        in_progress_count: counts["indeterminate"].to_i,
+        done_count: counts["done"].to_i
+      )
+    end
+  rescue => e
+    Rails.logger.warn("[JiraSync] delivery progress sync failed: #{e.class}: #{e.message}")
   end
 
   # Epics behind a "Now" idea that epic_query did not already return.

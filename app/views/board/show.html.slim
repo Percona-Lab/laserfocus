@@ -36,8 +36,17 @@
 
   = render "board/roadmap_line", alignment: @presenter.alignment
 
-  main.kb-board#board-root data-board-target="root"
+  main.kb-board#board-root data-board-target="root" data-landing-sort=(@presenter.landing_sort? ? "1" : nil)
+    - last_lane = nil
     - @presenter.column_groups.each do |group|
+      - if @presenter.landing_sort?
+        - lane = @presenter.landing_lane(group.first)
+        - if lane != last_lane && lane != :unplanned
+          .lq-lane-head class=("lq-lane-warn" if lane == :not_set) title=(lane.is_a?(LandingQuarter) ? "#{lane.period_label} · Time-ID #{lane.id}" : nil)
+            - if lane.is_a?(LandingQuarter)
+              span.lq-mono style="background:#{landing_color(lane)}"= lane.letter
+            = landing_lane_label(lane)
+        - last_lane = lane
       - if group.size == 1 && !@presenter.stacked?(group.first)
         = render "board/column", column: group.first
       - else

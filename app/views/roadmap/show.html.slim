@@ -1,0 +1,227 @@
+- content_for :title, "Roadmap – LaserFocus"
+- p = @presenter
+
+.rm
+  .rm-inner
+    header.rm-head
+      h1 Roadmap accountability
+      span.rm-internal INTERNAL ONLY
+      a.rm-back href=root_path ← Back to board
+    p.rm-sub
+      | Landing quarters from the Discovery Time-ID. Internal targets, not a promise to anyone outside engineering.
+        Animals may migrate, hibernate or occasionally become extinct.
+
+    - if p.nil?
+      p.rm-empty
+        | Landing quarters are switched off. Set landing_quarters, roadmap_query, time_id_field and time_id_layout under discovery in config/laserfocus.yml.
+    - else
+      .rm-cards
+        - p.cards.each do |card|
+          - q = card.quarter
+          - selected = p.quarter_filter == q.id
+          a.rm-card href=roadmap_path(p.link_params(quarter: (selected ? nil : q.id))) data-sel=(selected ? "1" : "0") data-current=(card.current ? "1" : "0")
+            .rm-card-top
+              .rm-mono style="background:#{landing_color(q)}"= q.letter
+              div
+                .rm-card-name= q.name
+                .rm-card-period= "#{q.id} · #{q.period_label}"
+            .rm-card-stats
+              span
+                b= card.targeted
+                | targeted
+              span.ok
+                b= card.landed_total
+                | landed
+              - if card.at_risk.positive?
+                span.warn
+                  b= card.at_risk
+                  | at risk
+              - if card.late.positive?
+                span.bad
+                  b= card.late
+                  | late
+              - if card.slipped_out.positive?
+                span.bad
+                  b= card.slipped_out
+                  | slipped out
+            .rm-card-bar
+              - [ [ card.landed, "#4d7c5f" ], [ card.landed_late, "#a16a35" ], [ card.on_track, "#16a34a" ], [ card.at_risk, "#d97706" ], [ card.late, "#dc2626" ] ].each do |n, color|
+                - if n.positive?
+                  span style="flex:#{n};background:#{color}"
+            .rm-card-foot
+              - if q.ongoing?
+                | Ongoing all year
+              - elsif card.past
+                = "#{card.landed} of #{card.targeted} landed on time"
+              - elsif card.current
+                = "#{(q.ends_on - p.today).to_i} days left"
+              - else
+                = "Starts in #{(q.starts_on - p.today).to_i} days"
+
+      .rm-toolbar
+        h2
+          | Timeline
+          - if p.quarter_filter
+            - fq = p.calendar.quarter(p.quarter_filter)
+            = " · #{fq&.name} "
+            a.rm-clear href=roadmap_path(p.link_params(quarter: nil)) show all
+        .rm-legend
+          span
+            i.rm-lg-target
+            | target quarter
+          span
+            i.rm-lg-work
+            | in Now
+          span
+            i.rm-lg-landed
+            | landed
+          span
+            i.rm-lg-ghost
+            | slipped from
+          span
+            i.rm-lg-late
+            | overdue
+        .kb-activity-pills.rm-range
+          - p.range_options.each do |value, label|
+            a.kb-act-pill href=roadmap_path(p.link_params(range: (value == "rolling" ? nil : value))) data-on=(p.range == value ? "1" : "0") = label
+
+      .rm-tl
+        .rm-tl-row.rm-axis
+          .rm-tl-label Idea
+          .rm-tl-track
+            - p.bands.each_with_index do |band, i|
+              .rm-q class=("alt" if i.odd?) data-current=(band.current ? "1" : "0") style="left:#{band.left}%;width:#{band.width}%"
+                b
+                  = band.quarter_label
+                  = " · #{band.animal}" if band.animal
+                span.rm-qid= band.id
+                - band.months.each do |m|
+                  span.rm-month style="left:#{m[:left]}%"= m[:label]
+            - if p.today_pct
+              .rm-today style="left:#{p.today_pct}%" data-label=p.today.strftime("%-d %b")
+        - if p.groups.empty?
+          .rm-tl-row
+            .rm-tl-label.rm-empty-cell No ideas with a landing quarter yet.
+            .rm-tl-track
+        - p.groups.each do |group|
+          .rm-tl-row.rm-group class=("rm-warn" if group.warn)
+            .rm-tl-label
+              - if group.quarter
+                span.lq-mono style="background:#{landing_color(group.quarter)}"= group.quarter.letter
+              = group.title
+              small= group.hint || "#{group.rows.size} #{'idea'.pluralize(group.rows.size)}"
+            .rm-tl-track
+              - p.bands.each_with_index do |band, i|
+                .rm-q class=("alt" if i.odd?) style="left:#{band.left}%;width:#{band.width}%"
+              - if p.today_pct
+                .rm-today style="left:#{p.today_pct}%"
+          - group.rows.each do |a|
+            - idea = a.idea
+            - selected = p.selected_key == idea.jira_key
+            a.rm-tl-row.rm-item href="#{roadmap_path(p.link_params(idea: (selected ? nil : idea.jira_key)))}#rm-detail" data-sel=(selected ? "1" : "0") title=landing_title(a)
+              .rm-tl-label
+                span.rm-tl-key= idea.jira_key
+                span.rm-tl-name= idea.summary
+                - if a.quarter.nil? && !a.landed?
+                  span.lq-tag.lq-s-none= idea.codename.present? ? "no Time-ID · Codename #{idea.codename.split.last}" : "no Time-ID"
+                span.rm-hz class="rm-hz-#{idea.horizon}"= idea.horizon_label
+              .rm-tl-track
+                - p.bands.each_with_index do |band, i|
+                  .rm-q class=("alt" if i.odd?) style="left:#{band.left}%;width:#{band.width}%"
+                - if p.today_pct
+                  .rm-today style="left:#{p.today_pct}%"
+                - p.marks(a).each do |m|
+                  - case m.kind
+                  - when :ghost
+                    .rm-ghost style="left:#{m.left}%;width:#{m.width}%" title=m.title
+                  - when :arrow
+                    .rm-arrow style="left:#{m.left}%;width:#{m.width}%"
+                  - when :target
+                    .rm-target style="left:#{m.left}%;width:#{m.width}%;border-color:#{m.color};background:#{m.color}14" title=m.title
+                  - when :work
+                    .rm-work style="left:#{m.left}%;width:#{m.width}%;background:#{m.color}" title=m.title
+                  - when :late
+                    .rm-late style="left:#{m.left}%;width:#{m.width}%"
+                  - when :landed
+                    .rm-diamond style="left:#{m.left}%;background:#{m.color}" title=m.title
+                - if (left = p.chip_left(a))
+                  span.rm-chip class="lq-s-#{a.tone}" style="left:calc(#{left}% + 8px)"= p.chip_text(a)
+
+      .rm-lower
+        div
+          .rm-toolbar
+            h2
+              | Plan changes
+              - if p.selected_key
+                = " · #{p.selected_key} "
+                a.rm-clear href=roadmap_path(p.link_params(idea: nil)) show all
+            .kb-activity-pills.rm-filters
+              - [ [ "all", "All" ], [ "targets", "Targets & landings" ], [ "slips", "Slips" ], [ "horizon", "Now/Next/Later" ] ].each do |value, label|
+                a.kb-act-pill href=roadmap_path(p.link_params(changes: (value == "all" ? nil : value))) data-on=(p.change_filter == value ? "1" : "0") = label
+          - if p.changes.empty?
+            p.rm-empty Nothing in this filter yet.
+          - p.changes_by_day.each do |day, changes|
+            section.rm-feed-day
+              h3.rm-feed-date= day.strftime("%A, %B %-d, %Y")
+              ul.rm-feed-list
+                - changes.each do |c|
+                  li
+                    a href="#{roadmap_path(p.link_params(idea: c.assessment.idea.jira_key))}#rm-detail"
+                      span.rm-feed-ico class="rm-k-#{c.kind}"
+                        = { set: "◎", cleared: "∅", corrected: "✎", slip: "↷", pull: "↶", up: "↑", down: "↓", closed: "✓", landed: "◆", landed_late: "◆" }.fetch(c.kind, "•")
+                      span.rm-feed-txt
+                        span.n= c.assessment.idea.summary
+                        = " "
+                        span.rm-tl-key= c.assessment.idea.jira_key
+                        br
+                        span.d== c.text
+                      span.rm-feed-by= c.author
+
+        .rm-detail#rm-detail
+          - if (a = p.selected)
+            - idea = a.idea
+            .rm-detail-key
+              a href=jira_url(idea.jira_key) target="_blank" rel="noreferrer"= idea.jira_key
+              = " · #{idea.horizon_label}"
+              = " · #{idea.incubator_status}" if idea.incubator_status.present?
+            h3= idea.summary
+            .rm-detail-tag= landing_tag(a)
+            .rm-why class="rm-why-#{a.tone}"= a.explanation
+            - if a.mismatch && a.quarter
+              .rm-why.rm-why-risk= "⚠ #{a.mismatch}. The Time-ID wins."
+            .rm-sec-title Delivered by
+            - if a.deliveries.empty?
+              p.rm-empty No delivery ticket linked.
+            - else
+              table
+                - a.deliveries.each do |d|
+                  - total = d.todo_count + d.in_progress_count + d.done_count
+                  tr
+                    td
+                      a.rm-detail-k href=jira_url(d.jira_key) target="_blank" rel="noreferrer"= d.jira_key
+                      = " #{d.summary}"
+                      .rm-mini
+                        - if total.positive?
+                          span style="flex:#{d.done_count};background:#22c55e"
+                          span style="flex:#{d.in_progress_count};background:#3b82f6"
+                          span style="flex:#{d.todo_count};background:#94a3b8"
+                    td.rm-detail-status
+                      = d.status_name || "—"
+                      br
+                      = "#{d.done_count}/#{total} done"
+            .rm-sec-title Plan history
+            - events = idea.idea_events.reject { |e| e.occurred_at.to_date > p.today }.reverse
+            - if events.empty?
+              p.rm-empty No changes recorded.
+            - else
+              table
+                - events.each do |e|
+                  tr
+                    td.rm-detail-when= e.occurred_at.strftime("%-d %b %Y")
+                    td
+                      = "#{{ 'time_id' => 'Time-ID', 'codename' => 'Codename', 'horizon' => 'Roadmap' }.fetch(e.field, e.field)}: #{e.from_value || '—'} → "
+                      b= e.to_value || "—"
+                      - if e.author.present?
+                        span.rm-detail-by= " · #{e.author}"
+          - else
+            p.rm-empty Click a row in the timeline, or an entry in the change log, to see why it is flagged, its delivery tickets and its plan history.

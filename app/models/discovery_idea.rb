@@ -6,6 +6,7 @@ class DiscoveryIdea < ApplicationRecord
   HORIZONS = %w[now next].freeze
 
   has_many :idea_deliveries, dependent: :destroy
+  has_many :idea_events, -> { chronological }, primary_key: :jira_key, foreign_key: :jira_key
 
   scope :active,  -> { where(removed_at: nil) }
   scope :now,     -> { active.where(horizon: "now") }
@@ -15,4 +16,12 @@ class DiscoveryIdea < ApplicationRecord
   def delivery_keys
     idea_deliveries.map(&:jira_key)
   end
+
+  def closed? = horizon == "closed"
+
+  # Closed as a success, as opposed to rejected or gone bad.
+  def succeeded? = closed? && incubator_status.to_s.casecmp?("Success")
+
+  # The horizon as Discovery names it ("Now", "Later", ...).
+  def horizon_label = horizon.to_s.capitalize
 end

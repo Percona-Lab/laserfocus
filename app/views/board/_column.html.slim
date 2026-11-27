@@ -17,7 +17,7 @@
 - dist_buckets = ordered_display_states.map { |s| n = all_issues.count { |p| p.display_status == s[:id] }; [s, n] }.select { |_, n| n > 0 }
 
 section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-controller="stack" data-stack-todo-open-value="false" data-stack-done-open-value="false"
-  .kb-col-head draggable="true"
+  .kb-col-head draggable=(@presenter.landing_sort? ? "false" : "true")
     .kb-col-accent style="background:#{accent};"
     .kb-col-title-row
       - if epic.jira_key == "UNPLANNED"
@@ -55,6 +55,10 @@ section.kb-col id="kb-col-#{epic.jira_key}" data-epic-key=epic.jira_key data-con
       - unless epic.jira_key == "UNPLANNED"
         span.kb-avatar style="background:#{epic_avatar[:color]};width:22px;height:22px;font-size:9px;margin-left:auto;" title=epic_avatar[:name]
           = epic_avatar[:initials]
+    - if column.landing && column.lane != :ongoing
+      .lq-col-ribbon
+        = landing_tag(column.landing)
+        = landing_days(column.landing)
     - if column.roadmap_idea || column.lane == :ongoing || not_started
       .kb-col-tags
         - if column.roadmap_idea

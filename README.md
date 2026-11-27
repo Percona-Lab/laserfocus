@@ -49,6 +49,14 @@ joined or left the board.
   Now item joins the board even without the `Priority` label, and columns are
   tagged with their roadmap item, the Ongoing lane, or a "nothing started" flag.
   Click the line to see the details.
+- **Landing quarters** (internal only, with `time_id_layout` set up): each epic
+  that delivers a roadmap item shows the quarter that item should land in, its
+  state (on track, at risk, late, landed, planned) and the days left. An item
+  without a Time-ID shows an amber *Time-ID not set*: LaserFocus never guesses
+  a quarter from the Codename. *By landing* orders the columns by quarter,
+  riskiest first, with a divider per quarter; each browser remembers it. The
+  roadmap line adds the current quarter's summary and notices for late and
+  at-risk items, missing Time-IDs and Codenames that disagree with the Time-ID.
 
 ### Community
 
@@ -199,6 +207,12 @@ and the Next view.
 - `now_query` / `next_query`: JQL over the ideas project.
 - `horizon_field`, `incubator_field`, `rank_field`: custom field ids on an idea.
 - `delivery_link_type_id`: the issue link type JPD uses for delivery tickets.
+- `landing_quarters`: `false` switches landing quarters off for a team that
+  does not use Time-IDs (no tags, no notices, no sort).
+- `roadmap_query`, `time_id_field`, `time_id_layout`, `codename_field`: landing
+  quarters. `roadmap_query` reads every idea with its changelog. The layout is
+  kept out of this repo on purpose; take it from the internal docs. Codenames
+  are learned from the ideas, so new ones need no config change.
 
 **`reviews`**: optional Reviews view.
 - `repos`: GitHub repos as `owner/name`.

@@ -122,12 +122,26 @@ module LaserFocus
       def incubator_field = @h["incubator_field"]
       def rank_field      = @h["rank_field"]
 
+      # Landing quarters: every idea (any horizon, closed ones too) and the
+      # fields that hold its target. See LandingCalendar for time_id_layout.
+      def roadmap_query  = @h["roadmap_query"]
+      def time_id_field  = @h["time_id_field"]
+      def time_id_layout = @h["time_id_layout"]
+      def codename_field = @h["codename_field"]
+
+      # `landing_quarters: false` switches the feature off for teams that do
+      # not use Time-IDs: no sync, no tags, no notices.
+      def landing?
+        @h["landing_quarters"] != false && roadmap_query.present? && time_id_field.present? && time_id_layout.present?
+      end
+
       def queries
         { "now" => now_query, "next" => next_query }.compact_blank
       end
 
       def issue_fields
-        ([ "summary", "issuelinks" ] + [ horizon_field, incubator_field, rank_field ]).compact_blank.uniq
+        ([ "summary", "issuelinks" ] +
+          [ horizon_field, incubator_field, rank_field, time_id_field, codename_field ]).compact_blank.uniq
       end
     end
 

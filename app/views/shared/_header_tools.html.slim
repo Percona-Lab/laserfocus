@@ -24,6 +24,15 @@
       button.kb-act-pill type="button" data-action=(enabled ? "group-mode#choose" : nil) data-mode=mode data-on=(enabled && @group_mode == mode ? "1" : "0") title=(enabled ? opt[:hint] : off_hint) disabled=!enabled
         = opt[:label]
 
+/ Column order, only where landing quarters are set up. Rendered (switched off)
+/ on every view, like the grouping, so the tabs keep their place.
+- if LASER_FOCUS_CONFIG.discovery&.landing?
+  - sort_on = enabled && !reviews
+  .kb-activity-pills.kb-column-sort role="group" aria-label="Column order" data-controller=(sort_on ? "column-sort" : nil)
+    - [ [ "manual", "Board order", "The order everyone shares: drag columns to change it" ], [ "landing", "By landing", "Earliest landing quarter first, riskiest first within a quarter. Remembered per browser" ] ].each do |sort, label, hint|
+      button.kb-act-pill type="button" data-action=(sort_on ? "column-sort#choose" : nil) data-sort=sort data-on=(sort_on && (@column_sort || "manual") == sort ? "1" : "0") title=(sort_on ? hint : off_hint) disabled=!sort_on
+        = label
+
 .kb-search-wrap
   svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#94a3b8" stroke-width="1.6" aria-hidden="true"
     circle cx="6" cy="6" r="4.2"
